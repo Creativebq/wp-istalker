@@ -5,6 +5,10 @@
 
 no introductions needed.
 
+= Installations =
+  # Extract WPI-PB-version-xx.zip to your wordpress themes directory. 
+    `*/wp-content/themes/`
+  # Activate Wp-iStalker themes go to wordpress dashboard > design > themes
 
 = Theme Options =
 Wordpress Dashboard > Design > Themes > Theme options
