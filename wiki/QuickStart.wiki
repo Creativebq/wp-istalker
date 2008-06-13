@@ -7,9 +7,14 @@ no introductions needed.
 
 
 = Theme Options =
-Design > Themes > Theme options
+Wordpress Dashboard > Design > Themes > Theme options
+
 ==General Settings==
 Common options
 ===Main menu==
-  * *main menu* - Enabled by default
-  * *Exclude Page* -
+Drop down Main _(enable by default)_.
+  * *main menu*  - options to display main menu options
+  * *Exclude Page* - exclude page from the main menu, comma separated value (i.e., 6,9,42)
+===Pathway==
+Show breadcrumb/pathway _(enable by default)_.
+  * pathway - options to display navigation pathway 
