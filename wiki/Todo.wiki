@@ -1,5 +1,4 @@
 #labels Phase-QA
-#todo and features request
 
 = Introduction =
 
