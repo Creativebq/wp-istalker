@@ -1,0 +1,15 @@
+#summary One-sentence summary of this page.
+#labels Phase-Deploy
+
+= Introduction =
+
+no introductions needed.
+
+
+= Theme Options =
+Design > Themes > Theme options
+==General Settings==
+Common options
+===Main menu==
+  * *main menu* - Enabled by default
+  * *Exclude Page* -
