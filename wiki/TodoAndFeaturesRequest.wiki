@@ -1,9 +1,0 @@
-#labels Phase-QA
-
-  # Theme Auto-update
-  # Clean Uninstall options
-  # mobile version
-  # no-scripts version
-  # additional new-minimalist style 
-  # TTF font uploader
-  # Custom APC object-cache class
