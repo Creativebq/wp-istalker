@@ -1,0 +1,5 @@
+#labels Featured
+_Credits to various people who have contributed externally to the project._
+  * *Olav Bjørkøy* - [http://code.google.com/p/blueprintcss/ Blueprint CSS framework]
+  * *jonathan*  (garetjax) - [http://code.google.com/p/phpbrowscap/ Browscap PHP Project]
+  * *Niels Leenheer* (rakaz) - [http://http://rakaz.nl Combine CSS & Scripts]
