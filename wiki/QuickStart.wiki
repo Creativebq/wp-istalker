@@ -1,7 +1,6 @@
 #labels Phase-Deploy,Featured
-
 == Installing the theme files ==
-The theme is installed just like any other Wordpress theme. You can read more detailed installation instructions at Wordpress Codex [http://codex.wordpress.org/Using_Themes#Adding_New_Themes  - "Adding new themes"].
+The theme is installed just like any other Wordpress theme. You can read more detailed installation instructions at Wordpress Codex "[http://codex.wordpress.org/Using_Themes#Adding_New_Themes Adding new themes]".
 
 To install the theme:
   # Extract the `/wp-istalker-pb/` folder from the zip archive.
