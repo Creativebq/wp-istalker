@@ -84,16 +84,16 @@ function self_uri(){
 }
 
 
-function wpi_foreach_hook($hook_array,$is_callback = false)
+function wpi_foreach_hook($hook_array,$is_callback = false,$priority = 10)
 {
 	if($is_callback && is_string($is_callback)){
 		foreach($hook_array as $filter_name){
-			add_action($filter_name,$is_callback);
+			add_action($filter_name,$is_callback,$priority);
 		}
 		
 	} else {
 		foreach($hook_array as $filter_name => $callback){
-			add_action($filter_name,$callback);
+			add_action($filter_name,$callback,$priority);
 		}		
 	}	
 	
