@@ -1,7 +1,12 @@
 #summary todo
 #labels Phase-Support
 
-==css==
-  * theme uninstaller
+==features==
+  * Theme Uninstaller
   * Upload fonts GUI
-  * Improve User Agent sniffer
+  * ~~*Improve User Agent sniffer*~~ 1.6.2 B1
+  * *Client Time Stylesheet* 1.6.2 RC2
+    # ~~Day~~ 1.6.2 B1
+    # Noon
+    # Dawn
+    # ~~Night~~ 1.6.2 RC2 
