@@ -82,6 +82,8 @@ class wpiScripts{
 		
 		$this->flushJs();
 		
+		$this->setExtraJS();
+		
 		if (has_count($this->head)){
 			
 			$this->head = array_unique($this->head);
@@ -122,9 +124,18 @@ class wpiScripts{
 					'charset'=>'utf-8') );
 	}
 	
-	public function getHeaderScripts(){		
+	public function getHeaderScripts(){			
 		$this->getScripts('head');
 		$this->printScripts();
+	}
+	
+	public function setExtraJS()
+	{	global $wp_query;
+	
+		if ($wp_query->is_singular){
+		 // && $wp_query->post->comment_status  == 'open'
+		 $this->register('thickbox','head');
+		}		
 	}
 	
 	public function embedScript()
@@ -147,9 +158,13 @@ class wpiScripts{
 			
 		$js .= ',script:{path:'.$jspath.',url:'.$jsurl.'}';
 		if (wpi_option('client_time_styles')){
-			$js .= ',pid:'.$pid.',cl_type:td};jQuery(document).ready(function(){if( $(\'#\'+wpi.id).hasClass(wpi.cl_type) == false){ $(\'#\'+wpi.id).addClass(wpi.cl_type);jQuery.cookie(\'wpi-cl\',wpi.cl_type,{duration: 1/24,path: "/"});};});'.PHP_EOL;
+			$js .= ',pid:'.$pid.',cl_type:td};jQuery(document).ready(function(){if( jQuery(\'#\'+wpi.id).hasClass(wpi.cl_type) == false){ jQuery(\'#\'+wpi.id).addClass(wpi.cl_type);jQuery.cookie(\'wpi-cl\',wpi.cl_type,{duration: 1/24,path: "/"});};});'.PHP_EOL;
 		} else {
 			$js .= ',pid:'.$pid.'};'.PHP_EOL;
+		}
+		
+		if (wpi_option('iframe_breaker') && !$wp_query->is_preview){
+			$js .= PHP_T.PHP_T.'if(top.location!=location){top.location.href=document.location.href;};'.PHP_EOL;
 		}
 		
 		// check client cookie;				
@@ -161,6 +176,8 @@ class wpiScripts{
 				
 		echo PHP_T;
 		t('script',$js,array('id'=>'wp-js-head-embed','type'=>'text/javascript','defer'=>'defer','charset'=>'utf-8'));
+		
+
 	}
 
 }

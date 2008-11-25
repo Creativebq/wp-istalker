@@ -1,5 +1,11 @@
 <?php
 if ( !defined('KAIZEKU') ) {die( 42);}
+/**
+ * $Id$
+ * WPI Template functions
+ * @package WordPress
+ * @subpackage Template
+ */
 require WPI_LIB_CLASS.'theme-enum.php';
 
 class Wpi
@@ -79,19 +85,25 @@ class Wpi
 		self::getFile(array('utils','formatting','filters','query','links','template','plugin','widgets','comments','author') );
 		
 		if ( is_admin() ) {		
+			
+			$this->_defaultSettings();
+			
 			add_action('admin_menu', array($this,'setThemeOptions') );
 			
-			// post template form			
+			// singular template form		
+			$callback = (is_wp_version('2.6','>=')) ? 'wpi_register_metaform' : 'wpi_post_metaform';
+			
 			wpi_foreach_hook(array(
 								'simple_edit_form',
 								'edit_form_advanced',
-								'edit_page_form'),'wpi_post_metaform');
-											
+								'edit_page_form'),$callback);			
+							
 			wpi_foreach_hook(array(
 								'edit_post',
 								'publish_post',
 								'save_post',
 								'edit_page_form'),'wpi_update_post_form');
+			
 			// User profile form
 			wpi_foreach_hook(array(
 				'profile_personal_options'=>'wpi_profile_options',
@@ -116,7 +128,7 @@ class Wpi
 			self::getFile('scripts','class');			
 			$this->Script = new wpiScripts();
 			
-			$js = array('jquery'=>'head','tooltip'=>'head','footer'=>'footer','css'=>'footer');	
+			$js = array('jquery'=>'head','tooltip'=>'head','scroll'=>'head','footer'=>'footer','css'=>'footer');	
 					
 			if (wpi_option('client_time_styles')){
 				$js['cookie'] = 'head';
@@ -146,6 +158,10 @@ class Wpi
 			
 			if (wpi_option('widget_treeview')){
 				$this->Style->register('image-treeview');
+			}
+			
+			if (strtolower($this->Browser->Browser) == 'ie'){
+				$this->Style->register('image-ie');
 			}
 			
 			if (is_active_widget('widget_flickrRSS')){
@@ -182,13 +198,44 @@ class Wpi
 		// custom header
 		$this->Template = new wpiTemplate();
 		
-		if (defined(WPI_DEBUG)) {
+		if (defined('WPI_DEBUG')) {
 			add_action('wp_footer',array($this,'debug'));
 		}
 		
 		// self::debugDefaultFilters()
+		if (defined('FIREBUG_CONSOLE')){
+			add_action('wp_head','wpi_firebug_console',wpiTheme::LAST_PRIORITY);
+		}			
 	}
 	
+
+	private function _defaultSettings(){
+		
+		$meta = WPI_META_PREFIX.'flag';
+		
+		if ( ($flag = get_option($meta) ) <= 0 ){
+			
+			$options = array(
+			'pathway_enable' => 1, 
+			'relative_date' => 1,
+			'post_hrating' => 1, /* require for hReview */
+			'relative_links'=> 1, /* make links relative (seo) */
+			'meta_robots' => 1,
+			'meta_title' => 1,
+			'meta_description' => 1,
+			'def_meta_description' => apply_filters(wpiFilter::FILTER_META_DESCRIPTION,get_option('blogdescription')),
+			'text_dir'=>'ltr',
+			'post_bookmarks'=>1	
+			);
+		
+		foreach($options as $k=>$v){
+			wpi_update_theme_options($k,$v);
+		}
+			update_option($meta, 1);
+		}
+	}
+	
+		
 	public function registerScript(array $arr)
 	{
 		if (is_object($this->Script) && has_count($arr)){
@@ -270,7 +317,7 @@ class Wpi
 			$this->Browser->updateMethod = Browscap::UPDATE_CURL;
 		}
 		
-		$this->Browser = $this->Browser->getBrowser($_SERVER['HTTP_USER_AGENT']);
+		$this->Browser = $this->Browser->getBrowser(SV_UA_STRING);
 	}
 	
 	
@@ -319,7 +366,6 @@ class Wpi
     	}		
 	}
 	
-	
 	/**
 	 * Wpi::debug()
 	 * 
@@ -328,8 +374,6 @@ class Wpi
 	public function debug()
 	{
 		wpi_dump($this);
-	}
-	
-		
+	}		
 }	
 ?>

@@ -1,17 +1,15 @@
 <?php
 if (!defined('KAIZEKU')) { die(42); }
 /**
- * Wp-Istalker Action Filters
+ * $Id$
+ * WPI filters
  * 
- *   
- * @author	Avice Devereux, http://kaizeku.com 
- * @since	17.march.2008
- * @license	MIT License  
+ * @since 1.6
+ * @author Avice D <ck+filtered@animepaper.net> 
  */
-
 final class wpiFilter
 {
-	const ACTION_FLUSH = 'wpi_flush';
+	const ACTION_FLUSH = 40000;
 	
 	const ACTION_SEND_HEADER = 'wpi_send_http_header';
 	
@@ -37,9 +35,11 @@ final class wpiFilter
 	
 	const ACTION_COPYRIGHT_STATEMENTS = 'wpi_copyright';	
 	
-	const ACTION_EMBED_CSS = 'wpi_embed_css';
+	const ACTION_EMBED_CSS = 45000;
 	
-	const ACTION_INTERNAL_CSS = 'wpi_internal_css';
+	const ACTION_INTERNAL_CSS = 45001;
+	
+	const ACTION_GRAVATAR_CSS = 45002;
 	
 	const ACTION_POST_PAGINATION = 'wpi_post_pagination';
 	
@@ -59,11 +59,13 @@ final class wpiFilter
 	
 	const FILTER_SECTION_INNER_CLASS = 'wpi_template_inner_class';
 	
-	const FILTER_LINKS = 'wpi_all_links';	
+	const FILTER_LINKS = 40100;	
+	
+	const FILTER_WEBFONT_LINKS = 40101;
 	
 	const FILTER_AUTHOR_NAME = 'wpi_html_display_name';
 	
-	const FILTER_PUBLIC_CSS = 'wpi_public_css';
+	const FILTER_PUBLIC_CSS = 45003;
 	
 	const NONCE_THEME_OPTIONS = 'wpi-theme-options';
 	
@@ -85,9 +87,30 @@ final class wpiFilter
 	
 	const EXTRA_JS = 'wpi_extra_js';
 	
+	const FILTER_ELM_ID = 'wpi_element_id_';
+	
+	const ACTION_BANNER_CONTENT = 'wpi_banner_content';
+	
+	const FILTER_HEAD_PROFILE = 'wpi_head_profile';
+	
+	const FILTER_ENTRY_CONTENT_CLASS = 'wpi_entry_content_class';
+	
+	const ACTION_BEFORE_CONTENT_PREFIX = 'wpi_before_content_';
+	
+	const ACTION_AFTER_CONTENT_PREFIX = 'wpi_after_content_';
+	
+	const FILTER_META_DESCRIPTION = 42000;
+	
+	const FILTER_META_KEYWORDS = 42001;
+	
+	const FILTER_CUSTOM_HEAD_CONTENT = 42002;
+	
+	const FILTER_CUSTOM_FOOTER_CONTENT = 42003;
+	
+	const FILTER_ROOT_CLASS_SELECTOR = 42004;
+	
 	private function __construct(){}
 	
 	private function __clone(){}
-} 
-
+}
 ?>

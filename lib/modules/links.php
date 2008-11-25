@@ -3,23 +3,22 @@ if ( !defined('KAIZEKU') ) { die( 42); }
 
 function wpi_get_stylesheets_url($css){
 	global $wp_rewrite;
-
-	$params = '?'.wpiTheme::PUB_QUERY_VAR_CSS.'=';
 		
 	if ($wp_rewrite && $wp_rewrite->using_permalinks() ){
 		$params = wpiTheme::PUB_QUERY_VAR_CSS.'/';	
+		$output = trailingslashit(rel(WPI_URL_SLASHIT.$params.$css));
+	} else {
+		$params = '?'.wpiTheme::PUB_QUERY_VAR_CSS.'=';
+		$output = untrailingslashit(rel(WPI_URL_SLASHIT.$params.$css));
 	}
-	
-	$output = trailingslashit(WPI_URL_SLASHIT.$params.$css);
-	
+		
 	if (get_query_var('preview') == 1){
 		$output = wpi_theme_content_url($css);
 	}	
-		
-	$output = apply_filters(wpiFilter::FILTER_LINKS,$output);
-		
+					
 	return $output;	
 }
+
 
 function wpi_theme_content_url($params,$ext = '.css'){
 	
@@ -35,35 +34,88 @@ function wpi_theme_content_url($params,$ext = '.css'){
 		
 }
 
+
+function wpi_logout_self_return_uri(){
+	return WPI_URL_SLASHIT.'wp-login.php?action=logout&amp;redirect_to='. urlencode(rel(self_uri()));
+}
+
+
+function wpi_logout_url($redirect = '') {
+
+	$redirect = '&amp;redirect_to='.urlencode(rel(self_uri()));
+	
+	return wp_nonce_url( site_url("wp-login.php?action=logout$redirect", 'login'), 'log-out' );
+}
+
+
 function wpi_get_scripts_url($js){
 	global $wp_rewrite;
-
-	$params = '?'.wpiTheme::PUB_QUERY_VAR_JS.'=';
 		
 	if ($wp_rewrite && $wp_rewrite->using_permalinks() ){
-		$params = wpiTheme::PUB_QUERY_VAR_JS.'/';	
-	}
-
-	$output = trailingslashit(WPI_URL_SLASHIT.$params.$js);
+		// pretty permalinks structure
+		$params = wpiTheme::PUB_QUERY_VAR_JS.'/';
+		$output = trailingslashit(rel(WPI_URL_SLASHIT.$params.$js));	
+	} else { 
+		// default permalinks structure		
+		$params = '?'.wpiTheme::PUB_QUERY_VAR_JS.'=';
+		$output = untrailingslashit(rel(WPI_URL_SLASHIT.$params.$js));	
+	}	
 
 	if (get_query_var('preview') == 1){
 		$output = wpi_theme_content_url($js,'.js');
-	}		
+	}
 	
-	$output = apply_filters(wpiFilter::FILTER_LINKS,$output);
 	return $output;
 }
+
+
 /**
  * get favicon url
  * @param void
  * @return   
  */
-
 function wpi_get_favicon_url(){		
 	return ( (file_exists(WP_ROOT.'favicon.ico') ? WPI_URL.'/favicon.ico' : WPI_THEME_URL.'favicon.ico') );	
 }	
 
 
+function wpi_comment_reply_uri($post,$comment){
+	global $wp_rewrite;
+	
+	$thickbox = 'height=418&amp;width=710';
+	
+	$query = '?'.wpiTheme::PUB_QUERY_VAR.'=%params%&amp;'.$thickbox;
+	
+	if ($wp_rewrite && $wp_rewrite->using_permalinks() ){
+		$query = wpiTheme::PUB_QUERY_VAR.'/%params%/?'.$thickbox;
+	}	
+	
+	$params = array();
+	$params[] = 'pid-'.$post->ID;
+	$params[] = 'cid-'.$comment->comment_ID;
+	$params[] = 'pcid-'.$comment->comment_parent;
+	
+	$uri = str_replace("%params%",'reply,'.join(",",$params),$query);
+	echo rel(WPI_URL_SLASHIT.$uri);	
+}
+
+function wpi_webfont_uri($type,$args = false){
+	global $wp_rewrite;	
+	
+	$query = '?'.wpiTheme::PUB_QUERY_VAR.'=%params%&amp;'.$type;
+	
+	if ($wp_rewrite && $wp_rewrite->using_permalinks() ){
+		$query = wpiTheme::PUB_QUERY_VAR.'/%params%/?'.$type;
+	}	
+	
+	$params = 'webfont';
+	if ($args){
+		$params .= ','.join(",",$args);
+	}
+		
+	$uri = str_replace("%params%",$params,$query);
+	echo rel(WPI_URL_SLASHIT.$uri);	
+}
 
 function wpi_cat_links($echo= 1, $index = false, $separator = '&#184;'){
 	global $wp_query;
@@ -81,11 +133,11 @@ function wpi_cat_links($echo= 1, $index = false, $separator = '&#184;'){
 					    'href'	=> '#content',
 					    'rel'	=> 'category foaf.topic',
 					    'title' => 'category',
-					    'rev'	=> 'site:archive');
-
+					    'rev'	=> 'site:archive');	
+	$links 	= '';
+	
 		if (is_bool($index)):
 		
-			$links 	= "\n";
 			$ismore	= false;			
 			$cnt 	= count($cats);
 			
@@ -131,7 +183,6 @@ function wpi_cat_links($echo= 1, $index = false, $separator = '&#184;'){
 }
 
 
-
 function wpi_get_pages_link(){
 	
 	$options = 'sort_column=menu_order&title_li=&echo=';
@@ -160,55 +211,35 @@ function wpi_img_url($filename){
 
 function wpi_acl_links()
 {
-		$m 			= array();
-		$acl_links	= array();
+		$m 	= $acl_links = array();
+		$m['register'] = array(); 
+		$m['loginout'] = array(WPI_URL_SLASHIT.'wp-login.php','log-in','Log-in to '.WPI_BLOG_NAME,'Log-in');
 
-		$m['register'] = array(); // sort first.
-		$m['loginout'] = array(
-							'/wp-login.php',
-							'log-in',
-							'Log-in to '.WPI_BLOG_NAME,
-							'Log-in');
-
-		if (get_option('users_can_register'))
-		{
-			$m['register'] = array(
-								'/wp-login.php?action=register',
-								'registration-open',
-								'Register an Account',
-								'Register');
+		if (get_option('users_can_register')){
+			$m['register'] = array(WPI_URL_SLASHIT.'wp-login.php?action=register','registration-open','Register an Account','Register');
+			
 		} else {
-			$m['register']= array(
-							'/#'.wpiTemplate::bodyID(),
-							'registration-closed',
-							'Registration is Closed',
-							'Registration is Closed');
+			$m['register']= array('#'.wpiTemplate::bodyID(),'registration-closed','Registration is Closed','Registration is Closed');
 		}
 
 		if (is_user_logged_in())
 		{
-			$m['register'] = array(
-								'/wp-admin/',
-								'dashboard',
-								WPI_BLOG_NAME.'&apos;s WP Admin Dashboard',
-								'Dashboard');
-			$req_uri = get_req_url();					
-			$m['loginout'] = array(
-								'/wp-login.php?action=logout&amp;redirect_to='.$req_uri,
-								'log-out',
-								'Log-out from '.WPI_BLOG_NAME,
-								'Log-out');
+			$m['register'] = array(WPI_URL_SLASHIT.'wp-admin/','dashboard',WPI_BLOG_NAME.'&apos;s WP Admin Dashboard','Dashboard');
+			$req_uri = get_req_url();		
+			$uri = (is_wp_version('2.6')) ? wpi_logout_url() : WPI_URL_SLASHIT.'wp-login.php?action=logout&amp;redirect_to='.urlencode(rel(self_uri()));
+						
+			$m['loginout'] = array($uri,'log-out','Log-out from '.WPI_BLOG_NAME,'Log-out');
 		}
-
 
 		foreach ( $m as $k => $v ){
 			// attributes
 			$attribs = array();
 
 			$attribs['id']		= $v[1];
-			$attribs['href']	= rel(WPI_URL.$v[0]);
-
-				if ($k == 'login'){
+			$attribs['href']	= rel($v[0]);
+			
+			
+				if ($k == 'log-in'){
 					$attribs['href'] = apply_filters($k,$attribs['href']);
 				}
 
@@ -223,13 +254,15 @@ function wpi_acl_links()
 			$acl_links[]		= _t('a',$v[3],$attribs);
 		}
 
-		$output = "\n";
+		$output = PHP_EOL;
 		if (is_array($acl_links)){
 			$cnt = 1;
 			foreach($acl_links as $link){
 				$output .= stab(4)._t('li',$link,array('id'=>'acl-'.$cnt));
 				$cnt++;
 			}
+			
+			unset($acl_links);
 		}
 		
 		t('ul',$output.stab(2).PHP_T,array('id'=>'cl-options','class'=>'xoxo r cfl cf'));
@@ -289,4 +322,23 @@ function wpi_get_adjacent_post_link($in_same_cat = false, $excluded_categories =
 	return array($link,$title);
 }
 
-?>
+function wpi_get_webfont_url($text = WPI_META, $font_size = 36, $font_face_name = 'danube', $rgb_hex = 'ffffff'){
+	
+	$config = array();
+	
+	foreach(array('text'=>$text,'font'=>$font_face_name,'hex'=>str_rem('#',$rgb_hex) ) as $k=> $v){
+		$config[$k] =b64_safe_encode($v);
+	}
+	
+	$uri = WPI_THEME_URL;									
+	$uri .= $config['text'].'-'.$font_size.'-'.$config['font'].'-'.$config['hex'];
+	$uri .= '.webfont';
+	$uri  = apply_filters(wpiFilter::FILTER_LINKS,$uri);
+	
+	return apply_filters('wpi_webfont_uri',$uri);	
+}
+
+
+function wpi_webfont_url($hash = false, $font_size = 36, $font_face_name = 'danube', $rgb_hex = 'ffffff'){
+	echo wpi_get_webfont_url($hash,$font_size,$font_face_name,$rgb_hex);
+}

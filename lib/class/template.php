@@ -1,23 +1,24 @@
 <?php
 if (!defined('KAIZEKU')) { die(42); }
 /**
+ * $Id$
  * Wp-Istalker template class
+ * @package WordPress
+ * @subpackage Template 
  */
 
 class wpiTemplate
 {
-
 	/**
- 	 * template section
+ 	 * Template section name
  	 * @var string
 	 */   	
-	public $section;
-	
+	public $section;	
 	
 	public $tpl;
 	
 	/**
- 	 * wordpress $wp_filter id
+ 	 * WordPress $wp_filter id
  	 * @var int 
 	 */   	
 	public $wp_filter_id;
@@ -26,8 +27,7 @@ class wpiTemplate
  	 * pad to content
  	 * @var int
 	 */   	
-	const TAB_CONTENT_SPACING = 3;
-	
+	const TAB_CONTENT_SPACING = 3;	
 
 	public function __construct()
 	{ global $wp_query;
@@ -40,24 +40,21 @@ class wpiTemplate
 		
 		$this->action('init','registerWidgets');
 		
-		if (wpi_option('text_dir') != 'ltr' && !is_admin()){
-			add_filter('language_attributes',array($this,'textDirection'));
+		if ( ( $txt_direction = wpi_option('text_dir')) != 'ltr' && !is_admin()){
+			$this->textDirection($txt_direction);
 		}
-		
 		
 		if (wpi_option('relative_links')){
 			add_filter('wpi_links_home','rel');
 			add_filter('wpi_links_single','rel');
 			add_filter(wpiFilter::FILTER_LINKS,'rel');
-		}
-		
+		}		
 				
 		// http header
 		$this->action('send_headers','httpHeader');
 
 		if (wpi_option('banner')){
 			$this->action(wpiFilter::ACTION_SECTION_PREFIX.'pathway_after', 'banner');
-			
 			$this->action(wpiFilter::ACTION_INTERNAL_CSS,'bannerIntenalCSS');
 		}
 				
@@ -88,14 +85,18 @@ class wpiTemplate
 		
 		// custom content
 		$this->action('wp_head','headCustomContent',wpiTheme::LAST_PRIORITY);
-		$this->action('wp_footer','footerCustomContent',wpiTheme::LAST_PRIORITY);
-		
+		$this->action('wp_footer','footerCustomContent',wpiTheme::LAST_PRIORITY);	
 		
 		/**
 		 * Content
 		 */		
 		// header
-		$this->action( wpiFilter::ACTION_TPL_HEADER, 'htmlBlogContentHeader');		
+		if (!wpi_option('gd_blogname')){
+			$this->action( wpiFilter::ACTION_TPL_HEADER, 'htmlBlogContentHeader');
+		} else {			
+			$this->action(wpiFilter::ACTION_INTERNAL_CSS, 'gdBlognameStyles',wpiTheme::LAST_PRIORITY+10);
+			$this->action(wpiFilter::ACTION_SECTION_PREFIX.'nav_before','htmlBlogHeader');
+		}
 		
 		// content 
 		
@@ -110,16 +111,30 @@ class wpiTemplate
 										   wpiFilter::FILTER_COM_DATE),
 										   'wpi_get_relative_date');					
 		}
+		if (wpi_option('post_excerpt')){
+			wpi_foreach_hook(array(
+			wpiFilter::ACTION_BEFORE_CONTENT_PREFIX.'home',
+			wpiFilter::ACTION_BEFORE_CONTENT_PREFIX.'single',
+			wpiFilter::ACTION_BEFORE_CONTENT_PREFIX.'author'
+			),'wpi_post_excerpt');
+		}
+		
+		if (wpi_option('post_author_description')){
+			add_action(wpiFilter::ACTION_AFTER_CONTENT_PREFIX.'single','wpi_post_author_descriptions');
+		}
+		
 		add_action(wpiFilter::ACTION_SECTION_PREFIX.'meta-title_content',
 			'wpi_content_meta_title_filter');
 		
 		
 		$this->action(
 		wpiFilter::ACTION_SECTION_PREFIX.'content-end_content','navLink');
-
-		if (!wpi_is_plugin_active('wp-pagenavi/wp-pagenavi.php')){
-			add_action(wpiFilter::ACTION_POST_PAGINATION,'wpi_post_link');
-		}
+		
+		wpi_plugin_active_elif(array(
+			'plugin'	=> 'wp-pagenavi/wp-pagenavi.php',
+			'hook'		=> wpiFilter::ACTION_POST_PAGINATION,
+			'fallback'	=> 'wpi_post_link'));
+		
 		add_filter(wpiFilter::FILTER_COMMENTS_SELECTOR,'wpi_post_author_selector_filter');
 		add_filter('get_comment_text','wpi_get_comment_text_filter');
 		
@@ -130,13 +145,30 @@ class wpiTemplate
 		add_action('wp_footer','wpi_register_widgets');	
 	}
 
+	public function htmlBlogHeader(){
+		
+		$outer_class = apply_filters(wpiFilter::FILTER_SECTION_OUTER_CLASS,'outer cf');
+		$inner_class = apply_filters(wpiFilter::FILTER_SECTION_INNER_CLASS,'inner c');		
+		do_action(wpiFilter::ACTION_SECTION_PREFIX.'header_before');
+?>
+<dd id="wp-header">
+	<div class="<?php echo $outer_class;?>">
+		<div class="<?php echo $inner_class;?>">
+			<div id="header">
+						<?php $this->htmlBlogContentHeader();?>
+			</div>
+		</div>
+	</div>		
+</dd> <!-- /#header -->
+<?php		
+		
+	}
+	
 	public function navLink()
 	{
 		$str = ' WordPress Themes';
 		$url = _t('a',WPI_BLOG_NAME,array('href'=>WPI_URL_SLASHIT,'title'=>WPI_BLOG_NAME,'rev'=>'vote-for'));
 		$htm = _t('a',wpiTheme::THEME_NAME.$str,array('href'=>wpiTheme::THEME_URL,'class'=>'rn rtxt','id'=>'designer','title'=> wpiTheme::THEME_NAME.' WordPress Theme') );
-		
-
 		
 		$htm .= _t('a','top',array('href'=>'#'.self::bodyID(),'title'=>'back to top','class'=>'rn rtxt top'));
 				$htm .= _t('span','Copyright &#169; '.wpi_get_blog_since_year().' '.$url.'.',array('id'=>'copyright'));
@@ -148,10 +180,17 @@ class wpiTemplate
 	public function validationServices(){
 ?>
 			<div id="validation" class="pa">
-			<a href="http://validator.w3.org/check?uri=referer" title="Valid XHTML">XHTML</a> <a href="http://www.validome.org/xml/validate/?lang=en&amp;onlyWellFormed=1&amp;url=<?php echo urlencode(WPI_URL_SLASHIT);?>" title="Valid XHTML+XML Documents (structured well-formed)">XML/DOM</a> <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Valid CSS 2.1/3.d Specifications">CSS</a> <a href="http://www.contentquality.com/mynewtester/cynthia.exe?Url1=<?php echo urlencode(WPI_URL_SLASHIT);?>" title="Web Content Accessibility Valid Section 508 Standards" rel="nofollow noarchive">508</a> <a href="http://tools.microformatic.com/transcode/rss/hatom/<?php echo urlencode(WPI_URL_SLASHIT);?>" title="Raw hAtom feeds" rel="atom" type="application/rss+xml">hAtom</a>
+			<a href="http://qa-dev.w3.org/unicorn/observe?ucn_task=conformance&amp;ucn_uri=<?php echo urlencode(WPI_URL_SLASHIT);?>&amp;ucn_lang=en" title="W3C Unicorn Universal Conformance Checker">W3C Unicorn</a>
+			<!--
+			<a href="http://validator.w3.org/check?uri=referer" title="Valid XHTML">XHTML</a>
+			-->
+			<a href="http://www.validome.org/xml/validate/?lang=en&amp;onlyWellFormed=1&amp;url=<?php echo urlencode(WPI_URL_SLASHIT);?>" title="Valid XHTML+XML Documents (structured well-formed)">XML</a> 
+			<!--
+			<a href="http://jigsaw.w3.org/css-validator/check/referer" title="Valid CSS 2.1/3.d Specifications">CSS</a> 
+			-->
+			<a href="http://www.contentquality.com/mynewtester/cynthia.exe?Url1=<?php echo urlencode(WPI_URL_SLASHIT);?>" title="Web Content Accessibility Valid Section 508 Standards" rel="nofollow noarchive">508</a> <a href="http://tools.microformatic.com/transcode/rss/hatom/<?php echo WPI_URL;?>" title="Raw hAtom feeds" rel="atom" type="application/rss+xml">Atom</a>
 			</div>
 <?php		
-/** <a href="http://www.contentquality.com/mynewtester/cynthia.exe?Url1=<?php echo urlencode(WPI_URL_SLASHIT);?>&amp;rptmode=1" title="WCAG Priotity 1">WCAG A</a> */
 	}
 	
 	public function registerWidgets()
@@ -167,8 +206,7 @@ class wpiTemplate
 	
 	
 	public static function bodyID()
-	{
-		
+	{		
 		return strtr(WPI_URL,array('http://'=>'','.'=>'-','/'=>'-') );
 	}
 	
@@ -178,7 +216,7 @@ class wpiTemplate
 		$html_type = get_bloginfo('html_type');
 		
 		if (defined('WPI_CLIENT_ACCEPT_XHTML_XML') 
-		&& WPI_CLIENT_ACCEPT_XHTML_XML){
+		&& WPI_CLIENT_ACCEPT_XHTML_XML && wpi_option('xhtml_mime_type')){
 			$html_type = 'application/xhtml+xml';
 		} else {
 			$html_type = 'text/html';
@@ -187,30 +225,47 @@ class wpiTemplate
 		return $html_type;
 	}
 	
-
-	public function headCustomContent(){
-		global $wp_query;
+	/**
+	 * Display custom header content on singular sections
+	 * @since 1.6.2
+	 * @uses wp_query WP_Query object
+	 * @uses wpi_get_postmeta() get head content postmeta
+	 * @return string HTML output
+	 */
+	public function headCustomContent()
+	{	global $wp_query;
+		
 		if (!$wp_query->is_singular) return;
+		
 		if ( ($content = wpi_get_postmeta('header_content') ) != false ){
-				echo PHP_EOL.PHP_T.$content.PHP_EOL;
+			$content = apply_filters(wpiFilter::FILTER_CUSTOM_HEAD_CONTENT,$content);
+			echo PHP_EOL.PHP_T.$content.PHP_EOL;
 		}			
 	}
-			
-	public function footerCustomContent(){
-		global $wp_query;
+	
+	/**
+	 * Display custom footer content on singular sections
+	 * @since 1.6.2
+	 * @uses wp_query WP_Query object
+	 * @uses wpi_get_postmeta() get head content postmeta
+	 * @return string HTML output
+	 */			
+	public function footerCustomContent()
+	{	global $wp_query;
+		
 		if (!$wp_query->is_singular) return;
+		
 		if ( ($content = wpi_get_postmeta('footer_content') ) != false ){
-				echo PHP_EOL.PHP_T.$content.PHP_EOL;
+			$content = apply_filters(wpiFilter::FILTER_CUSTOM_FOOTER_CONTENT,$content);
+			echo PHP_EOL.PHP_T.$content.PHP_EOL;
 		}		
 	}
+	
 
-	public function textDirection($content)
-	{
-			
-		// lazy style
-		$content = str_replace('ltr',wpi_option('text_dir'),$content);
-		$content = str_replace('rtl',wpi_option('text_dir'),$content);
-		return $content;
+	public function textDirection($direction = 'ltr')
+	{	global $wp_locale;
+		
+		$wp_locale->text_direction = $direction;
 		
 	}
 	
@@ -264,31 +319,24 @@ class wpiTemplate
 	public static function dtd()
 	{	global $is_IE, $Wpi;
 		
-		if (defined('WPI_CLIENT_ACCEPT_XML') && WPI_CLIENT_ACCEPT_XML){
+		if (defined('WPI_CLIENT_ACCEPT_XML') && WPI_CLIENT_ACCEPT_XML){			
+			$charset = get_bloginfo('charset');			
+			$xml = '<?xml version="1.0" encoding="'.$charset.'"?>'.PHP_EOL;
 			
-		$charset = get_bloginfo('charset');
-		
-		$xml = '<?xml version="1.0" encoding="'.$charset.'"?>'.PHP_EOL;
-		
-		if (! $is_IE && wpi_option('xhtml_mime_type') 
-		&& ! wpi_option('css_via_header')){
-		
-		$css_url = wpi_get_stylesheets_url($Wpi->Style->css);
+			if (! $is_IE && wpi_option('xhtml_mime_type') && ! wpi_option('css_via_header')){
 			
-        $xml .='<?xml-stylesheet href="'.$css_url.'" title="'.wpiTheme::UID.'" type=""text/css""?>'.PHP_EOL;
-        }
+				$css_url = wpi_get_stylesheets_url($Wpi->Style->css);
+					
+		        $xml .='<?xml-stylesheet href="'.$css_url.'" title="'.wpiTheme::UID.'" type=""text/css""?>'.PHP_EOL;
+	        }
         	
         }
         
-      
+	        $dtd = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'.PHP_EOL;
+	        
+	        $output = apply_filters(wpiFilter::FILTER_PUBLIC_DTD,$dtd);
         
-        $dtd = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'.PHP_EOL;
-        
-        $output = apply_filters(wpiFilter::FILTER_PUBLIC_DTD,$dtd);
-        
-        if (isset($xml)){
-			$output = $xml.$output;
-		}
+        if (isset($xml)) $output = $xml.$output;		
         
 		echo $output;	
 	}
@@ -302,7 +350,7 @@ class wpiTemplate
 		$separator = ' '.WpiTheme::BLOG_TITLE_SEPARATOR.' '; // >> chars			
 						
 		if ($wp_query->is_home ){
-			$output .= $separator.' '.get_bloginfo('description');
+			$output .= $separator.' '.wpi_safe_stripslash(get_bloginfo('description'));
 			
 		} elseif ($wp_query->is_single || $wp_query->is_page){
 			
@@ -354,8 +402,7 @@ class wpiTemplate
 		$m = array();		
 		
 		$m[] = array('http-equiv' => 'Content-Type',
-					 'content'	=> self::getContentMIMEType().'; charset='.get_bloginfo('charset'));					 		
-				 
+					 'content'	=> self::getContentMIMEType().'; charset='.get_bloginfo('charset'));			 
 		
 		if (has_count($m)){	
 			foreach($m as $attribs)	echo "\t"._t('meta','',$attribs);
@@ -390,7 +437,7 @@ class wpiTemplate
 				$m[] = array('name'		=> 'author',
 							 'content'	=> $name);
 			}	
-		if (get_option('blog_public') != '0'){
+		if (get_option('blog_public') != '0' && wpi_option('meta_robots')){
 	        $robots = sprintf('%s, follow', (((is_home() || is_single() || is_page()) && !is_paged()) ? 'index' : 'noindex'));        
 	        $m[] = array('name'		=> 'robots','content' => $robots.', noodp');	
 		}	 
@@ -421,18 +468,22 @@ class wpiTemplate
 					$prop = attribute_escape(get_option('blogdescription'));
 				}				
 				
+				$prop = apply_filters(wpiFilter::FILTER_META_DESCRIPTION,$prop);
+				
 				$m[] = array('name'	=> 'description','content' => $prop );
 			}
 			
 			// keywords
 			if (wpi_option('meta_keywords')){	
-				$prop = wpi_safe_stripslash(wpi_option('def_meta_keywords'));	
+				$prop = wpi_option('def_meta_keywords');	
 				
 				if ('' == $prop){
 					$prop = WPI_BLOG_NAME;
 				}
 				
-				$m[] = array('name'	=> 'keywords','content' => $prop );
+				$prop = apply_filters(wpiFilter::FILTER_META_KEYWORDS,$prop);
+				
+				$m[] = array('name'	=> 'keywords','content' => $prop);
 			}			
 		}
 		
@@ -497,13 +548,11 @@ class wpiTemplate
 				 
 		if ($microid && !empty($microid)){
 			$m[] = array('name'	=> 'microid',
-						 'content'	=> $microid);					 				 	
+						 'content'	=> $microid);				 				 	
 		}
 		
-		
-		
 		if (has_count($m)){	
-			foreach($m as $attribs)	echo "\t"._t('meta','',$attribs);
+			foreach($m as $attribs)	echo PHP_T._t('meta','',$attribs);
 		}	
 		
 		unset($m,$attribs);
@@ -648,14 +697,14 @@ class wpiTemplate
 	public function sectionStart()
 	{
 		$outer_class = apply_filters(wpiFilter::FILTER_SECTION_OUTER_CLASS,'outer cf');
-		$inner_class = apply_filters(wpiFilter::FILTER_SECTION_INNER_CLASS,'inner c');;
+		$inner_class = apply_filters(wpiFilter::FILTER_SECTION_INNER_CLASS,'inner c');
 		
 		do_action(wpiFilter::ACTION_SECTION_PREFIX.$this->section.'_before');
 		
 		$output = '<dd id="wp-'.$this->section.'">'.PHP_EOL;
 		$output .= PHP_T.'<div class="'.$outer_class.'">'.PHP_EOL;
-		$output .= str_repeat(PHP_T,2).'<div class="'.$inner_class.'">'.PHP_EOL;
-		$output .= str_repeat(PHP_T,3).'<div id="'.$this->section.'" class="content cb cf">'.PHP_EOL;
+		$output .= PHP_T.PHP_T.'<div class="'.$inner_class.'">'.PHP_EOL;
+		$output .= stab(0).'<div id="'.$this->section.'" class="content cb cf">'.PHP_EOL;
 		echo $output;
 		unset($output,$outer_class,$inner_class);
 		
@@ -663,10 +712,9 @@ class wpiTemplate
 	}
 	
 	public function sectionEnd()
-	{
-		
-		$output = str_repeat(PHP_T,3).'</div>'.PHP_EOL;
-		$output .= str_repeat(PHP_T,2).'</div>'.PHP_EOL;
+	{		
+		$output = stab(0).'</div>'.PHP_EOL;
+		$output .= PHP_T.PHP_T.'</div>'.PHP_EOL;
 		$output .= PHP_T.'</div>'.PHP_EOL;
 		$output .= '</dd>'.'<!-- /#wp-'.$this->section.' -->'.PHP_EOL;
 		echo $output;
@@ -684,8 +732,7 @@ class wpiTemplate
 		
 		return $output;
 	}
-	
-	
+
 	public function htmlBlogContentHeader()
 	{
 		
@@ -698,18 +745,49 @@ class wpiTemplate
 	
 	public function getHtmlBlogname()
 	{ global $wp_query;
+	
+		$blog_name = (wpi_option('gd_blogname_text')) ? wpi_option('gd_blogname_text') : WPI_BLOG_NAME;
 		
 		$attribs = array('href'=> rel(trailingslashit(WPI_URL)),
-		'rel'=>'home','title'=> WPI_BLOG_NAME,'class'=>'url fn');
+		'rel'=>'home','title'=> $blog_name,'class'=>'url fn');
+			
+		if (wpi_option('gd_blogname')){
+			$attribs['class'] .= ' db rtxt rn';
+			$attribs['style'] = 'height:'.ceil(wpi_option('gd_blogname_text_size') + 12).'px;' ;
+			
+		}	
 		
-		$output = _t('a',WPI_BLOG_NAME,$attribs);
+		$output = _t('a',$blog_name,$attribs);
 		
-		$heading_type = ($wp_query->is_home) ? 'h1' : 'h2';
+		$heading_type = ($wp_query->is_home) ? 'h1' : 'h2';		
 		
-		$output =  self::spacing()._t($heading_type,_t('strong',$output),array('id'=>'blog-title'));
-		
+		$output =  self::spacing()._t($heading_type,_t('strong',$output),array('id'=>'blog-title'));		
 		
 		return $output;
+	}
+	
+	
+	/**
+	 * Append gd_blogname stylesheet
+	 * void wpiTemplate::gdBlognameStyles()
+	 * hook: wpiFilter::ACTION_INTERNAL_CSS
+	 */
+	public function gdBlognameStyles()
+	{	
+		
+		$base_height = 72;
+		$height = abs(wpi_option('gd_blogname_text_size'));
+		$inc = 8;
+		
+		$uri = wpi_get_webfont_url(wpi_option('gd_blogname_text'),$height,wpi_option('gd_blogname_font'),wpi_option('gd_blogname_color'));
+		
+		$css = PHP_T.'#blog-meta{';
+		$css .= 'height:'.(ceil($base_height+$height)) .'px !important';
+		$css .= '}'.PHP_EOL;		
+		$css .= PHP_T.'#blog-title a{';
+		$css .= 'background-image:url(\''.$uri.'\') !important;height:'. ceil($height + $inc) .'px';
+		$css .= ';width:700px;display:block}'.PHP_EOL;
+		echo $css;
 	}
 	
 	public function getHtmlBlogDescription()
@@ -749,32 +827,27 @@ class wpiTemplate
 	public function banner()
 	{	
 		if (!self::bannerReady()) return;
+		$this->bannerContentFilters();
 		
 		$output = '<dd id="wp-banner">'.PHP_EOL;
 		$output .= PHP_T.'<div class="outer">'.PHP_EOL;
 		$output .= stab(2).'<div class="inner icontent c">'.PHP_EOL;
 		$output .= stab(3).'<div id="banner" class="content cb cf">'.PHP_EOL;
-		
-		if (stristr(wpi_option('banner_url'),'animepaper.net') ){
-			$output .= $this->randomAPBanner();
-		}	
-		
-		echo $output;	
-		
+		echo $output;
+		do_action(wpiFilter::ACTION_BANNER_CONTENT);			
 		$output = stab(3).'</div>'.PHP_EOL;
 		$output .= stab(2).'</div>'.PHP_EOL;
 		$output .= PHP_T.'</div>'.PHP_EOL;
 		$output .= '</dd>'.'<!-- /#wp-banner -->'.PHP_EOL;
 		echo $output;
-		unset($output);			
-		
+		unset($output);		
 	}
 	
 	public static function bannerReady()
 	{ global $wp_query;
 		
 		$bn = wpi_option('banner_na');
-		$op = ( ($bn == 'none' || is_at() == $bn) ? false : true );
+		$op = ( (is_at() == $bn) ? false : true );
 		
 		
 		if ($wp_query->is_singular){
@@ -782,6 +855,9 @@ class wpiTemplate
 		}
 		
 		if ($wp_query->is_author){
+			/**
+			 * @todo	inconsistent, user_show_banner should return false not null
+			 */
 			$op = (isset($wp_query->queried_object->user_show_banner)) ? true : false;
 					
 		}		
@@ -789,11 +865,33 @@ class wpiTemplate
 		return $op;
 	}
 	
-	public function randomAPBanner(){
+	public function bannerContentFilters()
+	{ global $wp_query;
 		
-		if (!self::bannerReady()) return;
+		// 1. animepaper banner filter
+		$uri = wpi_option('banner_url');
 		
-		return _t('a','animepaper',array('class'=>'rtxt icn-16 ttip','rev'=>'vote-for','rel'=>'dc-source','title'=>'Random Wallpaper | by Animepaper Community','style'=>'width:100%;height:'.wpi_option('banner_height'),'href'=>'http://www.animepaper.net'));
+		if ($wp_query->is_single || $wp_query->is_page){
+			$uri = wpi_get_postmeta('banner_url');
+		}
+		
+		if ($wp_query->is_author){
+			$uri = $wp_query->queried_object->user_banner_url;
+		}
+		
+		// filter uri
+		if ($uri == 'http://static.animepaper.net/upload/rotate.jpg'){
+			add_action(wpiFilter::ACTION_BANNER_CONTENT,array($this,'randomAPBannerLinks'),wpiTheme::LAST_PRIORITY);
+		}
+	}
+	
+	/**
+	 * Using animepaper random wallpaper banner require
+	 * a link back to animepaper.net <support@animepaper.net>
+	 */
+	public function randomAPBannerLinks()
+	{				
+		t('a','animepaper',array('class'=>'rtxt icn-16 ttip','rev'=>'vote-for','rel'=>'dc-source','title'=>'Random Wallpaper | by Animepaper Community','style'=>'width:100%;height:'.wpi_option('banner_height'),'href'=>'http://www.animepaper.net'));
 		
 	}
 	
@@ -807,10 +905,13 @@ class wpiTemplate
 		$burl = wpi_option('banner_url');
 		$height = wpi_option('banner_height');
 		$repeat = wpi_option('banner_repeat');	
+		$position = wpi_option('banner_position');
+		
 		// global image url	
 		$burl = (!empty($burl)) ? $burl : 'http://static.animepaper.net/upload/rotate.jpg';		
 		$height = (!empty($height)) ? $height : '72px';			
 		$repeat = (!empty($repeat)) ? $repeat : 'no-repeat';
+		$position = (!empty($position)) ? $position : '0% 0%';
 		
 		if ($is_articles){
 			
@@ -824,6 +925,10 @@ class wpiTemplate
 						
 			if ( ($prepeat = wpi_get_postmeta('banner_repeat') ) != false ){
 				$repeat = (!empty($prepeat)) ? $prepeat : $repeat;
+			}			
+			
+			if ( ($pposition = wpi_get_postmeta('banner_position') ) != false ){
+				$position = (!empty($pposition)) ? $pposition : $position;
 			}				
 		}
 		
@@ -844,6 +949,10 @@ class wpiTemplate
 				$repeat = (!empty($urepeat)) ? $urepeat : $repeat;
 			}
 			
+			if ( ($uposition = $puser->user_banner_position ) != false ){
+				$position = (!empty($uposition)) ? $uposition : $position;
+			}
+						
 			unset($puser);				
 		}		
 		
@@ -851,7 +960,7 @@ class wpiTemplate
 		$css .= PHP_T.'#banner{background-color:#f9f9f9;background-image:url(';
 		$css .= $burl.');border-bottom:2px solid #ddd;';
 		$css .= 'border-top:1px solid #999;height:'.$height.';';
-		$css .= 'background-position:0% 0%;background-repeat:'.$repeat;
+		$css .= 'background-position:'.$position.';background-repeat:'.$repeat;
 		$css .= '}'.PHP_EOL;
 		
 		echo $css;
@@ -890,21 +999,23 @@ class wpiTemplate
 		$js			= get_query_var(wpiTheme::PUB_QUERY_VAR_JS);
 				
 		if ( ($option = get_query_var(wpiTheme::PUB_QUERY_VAR)) != false ){
-			switch ($option):
-				case 'osd':	wpi_get_osd(); break;
-			endswitch;			
-			exit; 
+			
+			if ($option == 'osd') wpi_get_osd();
+			
+			if ( stristr($option,'reply') ){
+				$args = explode(wpiTheme::PARAMS_SEP,$option);
+				wpi_get_reply_form($args);
+			}
+			/*
+			if ( stristr($option,'webfont') ){
+				wpi_get_webfont(explode(wpiTheme::PARAMS_SEP,$option));
+			}*/			
+
 		}
 		
-		if ($css){
-			wpi_get_public_content($css,'css');
+		if ($css) wpi_get_public_content($css,'css');
 		
-		}
-		
-		if ($js){
-			wpi_get_public_content($js,'js');	
-		
-		}		
+		if ($js) wpi_get_public_content($js,'js');			
 	}
 	
 	public function flushWPRewriteRules()
@@ -915,13 +1026,13 @@ class wpiTemplate
 	public function rewriteRules( $wp_rewrite ) 
 	{
 	  $new_rules = array( 
-	    wpiTheme::PUB_QUERY_VAR.'/(.+)' => 
-		'index.php?'.wpiTheme::PUB_QUERY_VAR.'='.$wp_rewrite->preg_index(1),		wpiTheme::PUB_QUERY_VAR_CSS.'/(.+)' => 'index.php?'.wpiTheme::PUB_QUERY_VAR_CSS.'='.$wp_rewrite->preg_index(1),
+	    wpiTheme::PUB_QUERY_VAR.'/(.+)' =>'index.php?'.wpiTheme::PUB_QUERY_VAR.'='.$wp_rewrite->preg_index(1),
+		wpiTheme::PUB_QUERY_VAR.'/reply/(.+)' => 'index.php?'.wpiTheme::PUB_QUERY_VAR.'=reply/'.$wp_rewrite->preg_index(1),/*
+		wpiTheme::PUB_QUERY_VAR.'/webfont/(.+)' => 'index.php?'.wpiTheme::PUB_QUERY_VAR.'=webfont/'.$wp_rewrite->preg_index(1),	*/
+		wpiTheme::PUB_QUERY_VAR_CSS.'/(.+)' => 'index.php?'.wpiTheme::PUB_QUERY_VAR_CSS.'='.$wp_rewrite->preg_index(1),
 		wpiTheme::PUB_QUERY_VAR_JS.'/(.+)' => 'index.php?'.wpiTheme::PUB_QUERY_VAR_JS.'='.$wp_rewrite->preg_index(1));
 	
 	  $wp_rewrite->rules = $new_rules + $wp_rewrite->rules;
 	  
-	}
-	
-				
+	}				
 }

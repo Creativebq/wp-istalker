@@ -1,6 +1,13 @@
 <?php
 if ( !defined('KAIZEKU') ) {   die( 42);}
-
+/**
+ * $Id$
+ * WPI default actions and filters functions
+ * 
+ * @package WordPress
+ * @subpackage Template 
+ */
+ 
 function wpi_register_actions(array $hook_array, $is_callback = false) {
 	
 	if($is_callback ) {
@@ -84,31 +91,29 @@ function self_uri(){
 }
 
 
-function wpi_foreach_hook($hook_array,$is_callback = false)
-{
+function wpi_foreach_hook($hook_array,$is_callback = false,$priority = 10){
 	if($is_callback && is_string($is_callback)){
 		foreach($hook_array as $filter_name){
-			add_action($filter_name,$is_callback);
+			add_action($filter_name,$is_callback,$priority);
 		}
 		
 	} else {
 		foreach($hook_array as $filter_name => $callback){
-			add_action($filter_name,$callback);
+			add_action($filter_name,$callback,$priority);
 		}		
 	}	
 	
 }
 
-function wpi_foreach_hook_filter($hook_array,$is_callback = false)
-{
+function wpi_foreach_hook_filter($hook_array,$is_callback = false,$priority = 10){
 	if($is_callback){
 		foreach($hook_array as $filter_name){
-			add_filter($filter_name,$is_callback);
+			add_filter($filter_name,$is_callback,$priority);
 		}
 		
 	} else {
 		foreach($hook_array as $filter_name => $callback){
-			add_filter($filter_name,$callback);
+			add_filter($filter_name,$callback,$priority);
 		}		
 	}
 	
@@ -125,8 +130,7 @@ function wpi_cat_content_filter($content){
 	return string_len(wpi_cat_image_filter($content),500);
 }
 
-function wpi_search_terms_filter($content)
-{
+function wpi_search_terms_filter($content){
 	$terms = get_search_query();	
 	$pat = '#(\>(((?>([^><]+|(?R)))*)\<))#se';
 	$rep = "preg_replace('#\b(" . $terms . ")\b#i', '<strong class=\"hilite-2\"><span>\\\\1</span></strong>', '\\0')";
@@ -141,8 +145,9 @@ function wpi_search_content_filter($content){
 }
 
 
-function wpi_content_meta_title_filter()
-{ global $wp_query;
+function wpi_content_meta_title_filter(){ 
+	global $wp_query;
+	
 	$title 	= get_the_title();
 	$output = false;
 	
@@ -240,12 +245,23 @@ function wpi_default_filters(){
 
 	$f = array();	
 	
-	$f['stylesheet_directory'] = 'wpi_get_stylesheet_directory_filter';
-	$f['stylesheet_directory_uri'] = 'wpi_stylesheet_directory_uri_filter';
-	$f['stylesheet_uri'] = 'wpi_get_stylesheet_uri_filter';
+	$f['stylesheet_directory'] 		= 'wpi_get_stylesheet_directory_filter';
+	$f['stylesheet_directory_uri'] 	= 'wpi_stylesheet_directory_uri_filter';
+	$f['stylesheet_uri'] 			= 'wpi_get_stylesheet_uri_filter';	
+	$f['the_password_form'] 		= 'wpi_password_form_filters';	
+	$f['comments_template'] 		= 'wpi_comments_template_filter';
 	
-	wpi_foreach_hook_filter($f);
+	// head
+	$f[wpiFilter::FILTER_META_DESCRIPTION] = 'wpi_meta_description_filter';
+	$f[wpiFilter::FILTER_META_KEYWORDS] = 'wpi_meta_keywords_filter';
+	$f[wpiFilter::FILTER_CUSTOM_HEAD_CONTENT] = 'wpi_custom_content_filter';
+	$f[wpiFilter::FILTER_CUSTOM_FOOTER_CONTENT] = 'wpi_custom_content_filter';
 	
+	if (is_wp_version('2.6')){
+		$f['login_form'] = 'wpi_login_form_action';
+	}
+	
+	wpi_foreach_hook_filter($f);	
 }
 
 function wpi_stylesheet_directory_uri_filter($stylesheet_dir_uri=false, $stylesheet=false){
@@ -272,19 +288,75 @@ function wpi_get_stylesheet_directory_filter($stylesheet_dir=false, $stylesheet=
 	return $dir;
 }
 
-
-function wpi_filter_debug(){
-	$arr = array();
-	// filter: stylesheet
-	$arr[] = get_stylesheet();
-	// filter: stylesheet_directory
-	$arr[] = get_stylesheet_directory();
-	// filter: stylesheet_uri ($stylesheet_uri,$stylesheet_dir_uri)
-	$arr[] = get_stylesheet_uri();
-	// filter: stylesheet_directory_uri
-	$arr[] = get_stylesheet_directory_uri();
-	wpi_dump($arr);exit;
+/**
+ * Microformats require proper 'summary'.
+ * filter: the_password_form
+ */
+function wpi_password_form_filters($content){
+	global $posts;
+	// append if there is no excerpt	
+	if (!has_excerpt($posts->ID)){
 	
+	$patt = '<p>'.__("This post is password protected. To view it please enter your password below:");
+	
+	$rep = _t('p',get_the_title(),array('class'=>'summary dn'));
+	
+	 $content = str_replace($patt,$rep.$patt,$content);
+	}	
+	
+	return $content;
 }
 
+function wpi_comments_template_filter($file){
+	
+	$version_file = WPI_DIR.'comments-'.WP_VERSION_MAJ.'.php';
+	if (file_exists($version_file)) $file = $version_file;
+	return $file;
+}
+
+function wpi_login_form_action(){
+}
+
+function wpi_selector_protected($selector){
+	return $selector.' protected';
+}
+
+function wpi_selector_grid($selector){
+	return $selector.' grid';
+}
+
+function wpi_section_class_filter($callback,$type='inner'){	
+	$hook = ($type == 'inner') ? wpiFilter::FILTER_SECTION_INNER_CLASS : wpiFilter::FILTER_SECTION_OUTER_CLASS;
+	
+	add_filter($hook,$callback);
+}
+
+function wpi_remove_section_class_filter($callback,$type='inner'){
+		$hook = ($type == 'inner') ? wpiFilter::FILTER_SECTION_INNER_CLASS : wpiFilter::FILTER_SECTION_OUTER_CLASS;
+	remove_filter($hook,$callback);
+}
+
+function wpi_meta_description_filter($content){
+	/**
+	 * + Meta-Description should not contain more than 30/48 words.
+	 * - Length should not be greater than 130/150 characters.
+	 * - Meta-Description should include all keywords.
+	 */
+	$content = string_len($content,150); // 
+	$content = ent2ncr(htmlentities2($content));
+	
+	return $content;
+}
+
+function wpi_meta_keywords_filter($content){
+	
+	$content = wpi_safe_stripslash($content);
+	$content = strtolower($content);
+	
+	return $content;
+}
+
+function wpi_custom_content_filter($content){
+	return str_replace("\n",PHP_EOL.PHP_T,$content);
+}
 ?>
