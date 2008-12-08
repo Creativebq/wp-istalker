@@ -1,4 +1,4 @@
-#labels Featured
+#labels Phase-Support
 _Credits to various people who have contributed externally to the project._
   * *Olav Bjørkøy* - [http://code.google.com/p/blueprintcss/ Blueprint CSS framework]
   * *Jonathan Stoppani*  (garetjax) - [http://code.google.com/p/phpbrowscap/ Browscap PHP Project]
