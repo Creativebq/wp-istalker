@@ -1,12 +1,37 @@
 #summary todo
-#labels Phase-Support
+#labels Phase-Support,Phase-QA
 
 ==features==
+
   * Theme Uninstaller
+
   * Upload fonts GUI
+
   * ~~*Improve User Agent sniffer*~~ 1.6.2 B1
+
   * *Client Time Stylesheet* 1.6.2 RC2
     # ~~Day~~ 1.6.2 B1
     # Noon
     # Dawn
     # ~~Night~~ 1.6.2 RC2 
+
+  * *Client Width (resolution) Stylesheet *
+    # 320 (iPhone)
+    # 480
+    # 800
+    # 1024
+    # 1152
+    # 1280 I
+    # 1280 II
+    # 1600
+    # 2048
+    # W 1280
+    # W 1440
+    # W 1680
+    # W 1920
+    # W 2560 
+    # Safari High DPI ^1^ style switcher.
+
+
+=====References=====
+  # http://webkit.org/blog/55/high-dpi-web-sites/
