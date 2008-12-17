@@ -12,7 +12,7 @@
   * *Client Time Stylesheet* 1.6.2 RC2
     # ~~Day~~ 1.6.2 B1
     # Noon
-    # Dawn
+    # ~~Dawn~~ 1.6.2 RC3
     # ~~Night~~ 1.6.2 RC2 
 
   * *Client Width (resolution) Stylesheet *
