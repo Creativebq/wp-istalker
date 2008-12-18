@@ -1,0 +1,30 @@
+#summary WPI fancy CSS class reference
+#labels Phase-Implementation
+
+<wiki:toc max_depth="5" />
+
+= Introduction =
+Take notes: this documentation is a work in progress, WPI fancy class is available inside [http://code.google.com/p/wp-istalker/source/browse/branches/WordPress/2.7/1.6.2/public/css/icecream.css?spec=svn149&r=149 `/public/css/icecream.css`]. Digg it
+
+== Class Selector ==
+|| *Class Selector* || *Description* || *Attributes* || *Notes* ||
+|| r || reset elements margin and padding || {{{ margin,padding }}} || ||
+|| r-- || Same as above, will append `!important` rules || {{{ margin,padding }}}|| ||
+|| dn || hide elements || {{{ display }}}|| ||
+|| dn-- || Same as above, will append `!important` rules || {{{ display }}}|| ||
+|| di || set elements box model to inline (`display:inline`) || {{{ display }}}|| ||
+|| di-- || Same as above, will append `!important` rules ||{{{ display }}} || ||
+|| rtxt || Text to image replacement^1^ || {{{ display, text-indent, position }}}|| ||
+|| fw || bold text 700. Make text bold || {{{ font-weight }}}|| useful if you want to stuff the `strong` tag without being so obvious ;p (grayhat SEO related) ||
+|| fw- || bold text 400. reduce bold (normal) || {{{ font-weight }}} || ||
+|| fl || Float elements to left (`float:left`) || {{{ float }}}|| ||
+|| fr || Float elements to right (`float:right`)|| {{{ float }}} || ||
+|| fn || Disabled float (`float:none`)|| {{{ float }}}|| ||
+|| cf || Cross browser clear float || || ||
+|| cb || Clear float on both direction || || ||
+|| cl || Clear left float || || ||
+|| cr || Clear right float || || ||
+
+==Reference==
+
+  # http://www.stopdesign.com/articles/replace_text/
