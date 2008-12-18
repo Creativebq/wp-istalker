@@ -4,7 +4,7 @@
 <wiki:toc max_depth="5" />
 
 = Introduction =
-Take notes: this documentation is a work in progress, WPI fancy class is available inside [http://code.google.com/p/wp-istalker/source/browse/branches/WordPress/2.7/1.6.2/public/css/icecream.css?spec=svn149&r=149 `/public/css/icecream.css`]. Digg it
+Take notes: this documentation is a work in progress, WPI fancy class is available inside `[http://code.google.com/p/wp-istalker/source/browse/branches/WordPress/2.7/1.6.2/public/css/icecream.css?spec=svn149&r=149 /public/css/icecream.css]`. Digg it
 
 == Class Selector ==
 || *Class Selector* || *Description* || *Styles* || *Notes* ||
