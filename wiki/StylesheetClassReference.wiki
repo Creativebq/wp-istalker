@@ -7,7 +7,7 @@
 Take notes: this documentation is a work in progress, WPI fancy class is available inside [http://code.google.com/p/wp-istalker/source/browse/branches/WordPress/2.7/1.6.2/public/css/icecream.css?spec=svn149&r=149 `/public/css/icecream.css`]. Digg it
 
 == Class Selector ==
-|| *Class Selector* || *Description* || *Attributes* || *Notes* ||
+|| *Class Selector* || *Description* || *Styles* || *Notes* ||
 || r || reset elements margin and padding || {{{ margin,padding }}} || ||
 || r-- || Same as above, will append `!important` rules || {{{ margin,padding }}}|| ||
 || dn || hide elements || {{{ display }}}|| ||
