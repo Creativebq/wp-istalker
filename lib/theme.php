@@ -1,5 +1,11 @@
 <?php
 if ( !defined('KAIZEKU') ) {die( 42);}
+/**
+ * $Id$
+ * WPI Template functions
+ * @package WordPress
+ * @subpackage Template
+ */
 require WPI_LIB_CLASS.'theme-enum.php';
 
 class Wpi
@@ -79,19 +85,25 @@ class Wpi
 		self::getFile(array('utils','formatting','filters','query','links','template','plugin','widgets','comments','author') );
 		
 		if ( is_admin() ) {		
+						
+			$this->_defaultSettings();			
+			
 			add_action('admin_menu', array($this,'setThemeOptions') );
 			
-			// post template form			
+			// singular template form		
+			$callback = (is_wp_version('2.6','>=')) ? 'wpi_register_metaform' : 'wpi_post_metaform';
+			
 			wpi_foreach_hook(array(
 								'simple_edit_form',
 								'edit_form_advanced',
-								'edit_page_form'),'wpi_post_metaform');
-											
+								'edit_page_form'),$callback);			
+							
 			wpi_foreach_hook(array(
 								'edit_post',
 								'publish_post',
 								'save_post',
 								'edit_page_form'),'wpi_update_post_form');
+			
 			// User profile form
 			wpi_foreach_hook(array(
 				'profile_personal_options'=>'wpi_profile_options',
@@ -116,13 +128,17 @@ class Wpi
 			self::getFile('scripts','class');			
 			$this->Script = new wpiScripts();
 			
-			$js = array('jquery'=>'head','tooltip'=>'head','footer'=>'footer','css'=>'footer');	
+			$js = array('jquery'=>'head','tooltip'=>'head','scroll'=>'head','footer'=>'footer','css'=>'footer');	
 					
 			if (wpi_option('client_time_styles')){
 				$js['cookie'] = 'head';
 				$js['client-time'] = 'head';
 			}	
-						
+
+			if (wpi_option('client_date_styles')){
+				$js['client-date'] = 'footer';
+			}
+									
 			// default scripts library
 			$this->registerScript($js);
 					
@@ -132,10 +148,11 @@ class Wpi
 					'f-treeview'=>'footer') );
 			}
 			
+	
+			
 			add_action('wp_head',array($this->Script,'printHead'),10);
 			add_action('wp_head',array($this->Script,'embedScript'),10);
-			add_action(wpiFilter::ACTION_FOOTER_SCRIPT,
-							array($this->Script,'printFooter'),10);
+			add_action(wpiFilter::ACTION_FOOTER_SCRIPT, array($this->Script,'printFooter'),10);
 		}
 				
 		// stylesheets
@@ -146,6 +163,10 @@ class Wpi
 			
 			if (wpi_option('widget_treeview')){
 				$this->Style->register('image-treeview');
+			}
+			
+			if (strtolower($this->Browser->Browser) == 'ie'){
+				$this->Style->register('image-ie');
 			}
 			
 			if (is_active_widget('widget_flickrRSS')){
@@ -160,12 +181,21 @@ class Wpi
 				unset($active,$widget_id);			
 			}
 			
-			if (wpi_is_plugin_active('global-translator/translator.php')){
-				$tag = 'translator-image';
+			if (wpi_is_plugin_active('global-translator/translator.php') 
+			&& wpi_option('widget_gtranslator')){
+				$tag = 'translator';
 				$this->Style->register($tag,wpiSection::SINGLE);				
 				$this->Style->register($tag,wpiSection::PAGE);
 				$this->Style->register($tag,wpiSection::ATTACHMENT);
 			}
+			
+			if (wpi_option('home_sidebar_position') != 'right'){
+				add_action(wpiFilter::ACTION_INTERNAL_CSS,'wpi_sidebar_dir_filter',wpiTheme::LAST_PRIORITY);
+			}
+			
+			if (wpi_option('home_post_thumb')){
+				add_action(wpiFilter::ACTION_INTERNAL_CSS,'wpi_post_thumbnail_filter',wpiTheme::LAST_PRIORITY+2);
+			}			
 			
 			if (wpi_option('css_via_header')){
 				$this->Style->printStyles();
@@ -174,7 +204,6 @@ class Wpi
 			}		
 		}
 		
-				
 		// sidebar
 		$this->Sidebar = new wpiSidebar();
 		$this->Sidebar->setSidebar();
@@ -182,13 +211,51 @@ class Wpi
 		// custom header
 		$this->Template = new wpiTemplate();
 		
-		if (defined(WPI_DEBUG)) {
+		if (defined('WPI_DEBUG')) {
 			add_action('wp_footer',array($this,'debug'));
 		}
 		
 		// self::debugDefaultFilters()
+		if (defined('FIREBUG_CONSOLE')){
+			add_action('wp_head','wpi_firebug_console',wpiTheme::LAST_PRIORITY);
+		}
+				
 	}
 	
+	private function _defaultSettings(){
+		
+		$meta = WPI_META_PREFIX.'flag';
+		
+		if ( ($flag = get_option($meta) ) <= 0 ){
+			
+			$options = array(
+			'pathway_enable' => 1, 
+			'relative_date' => 1,
+			'post_hrating' => 1, /* require for hReview */
+			'relative_links'=> 1, /* make links relative (seo) */
+			'meta_robots' => 1,
+			'meta_title' => 1,
+			'meta_description' => 1,
+			'def_meta_description' => apply_filters(wpiFilter::FILTER_META_DESCRIPTION,get_option('blogdescription')),
+			'text_dir'=>'ltr',
+			'post_bookmarks'=>1,
+			'icn_favicon'=> clean_url(wpi_get_favicon_url()),
+			'home_avatar'=>1,
+			'home_sidebar_position'=> 'right'	
+			);
+		
+		foreach($options as $k=>$v){
+			wpi_update_theme_options($k,$v);
+		}
+		
+		unset($options,$k,$v);
+		$this->_setCachePerm();
+				
+			update_option($meta, 1);
+		}
+	}
+	
+		
 	public function registerScript(array $arr)
 	{
 		if (is_object($this->Script) && has_count($arr)){
@@ -219,7 +286,11 @@ class Wpi
 			
 			case wpiTheme::LIB_TYPE_IMPORT:
 				$lib = WPI_LIB_IMPORT;
-			break;			
+			break;
+
+			case wpiTheme::LIB_TYPE_SHORTCODE:
+				$lib = WPI_LIB_IMPORT_SHORTCODE;
+			break;				
 			
 			default:
 				$lib = WPI_LIB;
@@ -263,14 +334,14 @@ class Wpi
 	public function setBrowscapPref()
 	{
 		//if( ! wpi_option('browscap_autoupdate') ){
-			$this->Browser->doAutoUpdate = false;
+			$this->Browser->doAutoUpdate = false; // autoupdate is too expensive
 		//}
 		
 		if (function_exists('curl_init')){
 			$this->Browser->updateMethod = Browscap::UPDATE_CURL;
 		}
 		
-		$this->Browser = $this->Browser->getBrowser($_SERVER['HTTP_USER_AGENT']);
+		$this->Browser = $this->Browser->getBrowser(SV_UA_STRING);
 	}
 	
 	
@@ -289,8 +360,8 @@ class Wpi
 			self::getFile('admin','class');
 			
 			$this->AdminUI = new wpiAdmin();
-	
-	        $req_page = basename(WPI_DIR.'functions.php');
+						
+			$req_page = basename(WPI_DIR.'functions.php');
 	
 	        $token = wpiFilter::NONCE_THEME_OPTIONS;
 	
@@ -309,6 +380,11 @@ class Wpi
 	            
 	            add_action('admin_head', array($this->AdminUI,'printCSS') );
 	            
+	            if ( (wpi_option('banner') ) && wpi_has_banner() != false ){
+	            	wp_enqueue_script('thickbox');
+	            	wp_enqueue_style('thickbox');
+	            }
+	            
 	            wp_enqueue_script(WPI_META.'_admin');
 	        }
 	
@@ -318,8 +394,32 @@ class Wpi
 							array($this->AdminUI, 'themeOptions') );
     	}		
 	}
-	
-	
+
+	private function _setCachePerm(){
+		$d = array(
+			'cache'=>WPI_CACHE_DIR,
+			'css'=>WPI_CACHE_CSS_DIR,
+			'scripts'=>WPI_CACHE_JS_DIR,
+			'webfonts'=>WPI_CACHE_FONTS_DIR,
+			'avatar'=>WPI_CACHE_AVATAR_DIR);
+		
+		foreach($d as $index=>$path){
+			$path = (string) $path;
+			if (!is_writable($path)){
+				// force all permission to owner, read and execute by others
+				@chmod($path,0755); 
+			} 
+		}
+		
+		unset($d);
+			
+	}
+
+	public function debugOptions()
+	{
+		wpi_dump(get_option(WPI_META_PREFIX.'settings'));		
+	}
+				
 	/**
 	 * Wpi::debug()
 	 * 
@@ -328,8 +428,6 @@ class Wpi
 	public function debug()
 	{
 		wpi_dump($this);
-	}
-	
-		
+	}		
 }	
 ?>

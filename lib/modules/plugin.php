@@ -1,13 +1,18 @@
 <?php
-
+if (!defined('KAIZEKU')) { die(42); }
 /**
- * Plugins function
+ * $Id$
+ * Wp-Istalker Plugins function
+ * @package WordPress
+ * @subpackage Template
+ * 
  */
 
 function wpi_plugin_init(){
 	$rm_plug = $call_plug = array();
 	$rm_plug[] = 'wp-pagenavi/wp-pagenavi.php,pagenavi_css,wp_head';	
 	$rm_plug[] = 'wp-downloadmanager/wp-downloadmanager.php,downloads_css,wp_head';
+	$rm_plug[] = 'subscribe-to-comments/subscribe-to-comments.php,show_subscription_checkbox,comment_form';
 	
 	$rm_plug = apply_filters(wpiFilter::REM_PLUGINS,$rm_plug);
 	
@@ -19,9 +24,34 @@ function wpi_plugin_init(){
 	}
 	
 	$call_plug[] = 'wp-pagenavi/wp-pagenavi.php,wp_pagenavi,wpi_post_pagination';
-	$call_plug[] = 'global-translator/translator.php,wpi_get_gt_translate_links,widget_single_summary_after';
-		$call_plug[] = 'global-translator/translator.php,wpi_global_translator_metalinks,wpi_meta_link';
-	//wpi_global_translator_metalinks
+	
+	/**
+	 * N2H's Global Translator
+	 */
+	if (wpi_option('widget_gtranslator')){
+		$call_plug[] = 'global-translator/translator.php,wpi_get_gt_translate_links,widget_single_summary_after';
+		
+		// Global Translator's language meta-link
+		if (wpi_option('widget_gtranslator_meta')){
+			$call_plug[] = 'global-translator/translator.php,wpi_global_translator_metalinks,wpi_meta_link';
+		}
+	}
+	
+	/**
+	 * Lester Chan's WP-Postviews
+	 */
+	if (wpi_option('widget_wppostview')){
+		$call_plug[] = 'wp-postviews/wp-postviews.php,wpi_the_views,wpi_content_bar_home';
+		$call_plug[] = 'wp-postviews/wp-postviews.php,wpi_the_views,wpi_content_bar_single';
+	}
+	
+	/**
+	 * Mark Jaquith's Subscribe to comments
+	 * @link http://txfx.net/code/wordpress/subscribe-to-comments/
+	 */
+	$call_plug[] = 'subscribe-to-comments/subscribe-to-comments.php,wpi_show_subscription,'.wpiFilter::ACTION_LIST_COMMENT_FORM;
+
+		
 	if (has_count($call_plug)){
 		foreach($call_plug as $index){
 			list($plugin,$callback,$hook) = explode(',',$index);
@@ -30,6 +60,11 @@ function wpi_plugin_init(){
 	}
 	
 	unset($rm_plug,$call_plug);
+	
+	// shortcode
+	if (wpi_option('nwp_caption')){
+		Wpi::getFile('caption','shortcode');
+	}
 }
 
 function wpi_curl_remote_file($url)
@@ -165,7 +200,7 @@ function wpi_get_gt_translate_links()
       $url 		= gltr_get_translated_url($key, $self_url);
       $url		= apply_filters(wpiFilter::FILTER_LINKS,$url);
 	  $name		= $translations[$key];	
-      $output 	.= _t('a', 'Translate &apos;'.$post_title.'&apos; in '.$name,
+      $output 	.= _t('a', sprintf(__('Translate &#39;%1$s&#39; in %2$s',WPI_META),$post_title,$name),
 	  			   array(
 					 	'id'	=> 'flag_'.$key,
 						'href'	=> $url,
@@ -185,22 +220,9 @@ function wpi_get_gt_translate_links()
 }
 
 function wpi_text_size()
-{
-?>
-			<ul id="acc" class="r fr cfr cf">
-				<li class="first-">
-<?php 
-	t('a',__('Increase text size',WPI_META),array('id'=>'font','class'=>'rtxt ttip','rel'=>'noarchive','type'=>'application/x-javascript','href'=>'#iscontent','title'=>'Increase | text size'));
-?>
-				</li>
-				<li class="last-">
-<?php 
-	t('a',__('Decrease text size',WPI_META),array('id'=>'font-','class'=>'rtxt ttip','rel'=>'noarchive','type'=>'application/x-javascript','href'=>'#iscontent','title'=>'Decrease | text size'));
-?>				
-				</li>
-			</ul>
-<?php 	
-}
+{?>
+			
+					<ul id="acc" class="r fr cfr cf"><li class="first-"><?php t('a',__('Increase text size',WPI_META),array('id'=>'font','class'=>'rtxt ttip','rel'=>'noarchive','type'=>'application/x-javascript','href'=>'#iscontent','title'=>'Increase | text size'));?></li><li class="last-"><?php t('a',__('Decrease text size',WPI_META),array('id'=>'font-','class'=>'rtxt ttip','rel'=>'noarchive','type'=>'application/x-javascript','href'=>'#iscontent','title'=>'Decrease | text size'));?></li></ul><?php }
 
 function wpi_get_bookmarks()
 {	global $post;
@@ -311,61 +333,10 @@ function wpi_get_bookmarks()
 
 }
 
-function wpi_bookmarks()
-{
+function wpi_bookmarks(){
 	echo wpi_get_bookmarks();
 }
 
-function get_wpi_plugins()
-{
-	$plugin_files = Wpi::listDirectoryFile(WPI_LIB,"/\.plugin\.php/");
-	
-	$plugins = array();
-	foreach($plugin_files as $file){
-		$name 		= wpi_strip_ftype('.plugin.php',$file);
-		$callback	= str_replace('-','_',$name);
-		
-		$plugins[] = array('name'=>$name,'id'=>$callback);
-	}
-	
-	unset($plugin_files);
-	
-	return $plugins;
-}
-
-function wpi_register_plugins()
-{
-	$plugins = get_wpi_plugins();
-	
-	if (is_array($plugins) && has_count($plugins) )
-	{
-		foreach($plugins as $plugin)
-		{			
-			if ( Wpi::loadPlugin( $plugin['name']) )
-			{				
-				$callback = 'wpi_get_'.$plugin['id'].'_pluginname';
-				
-				if (wpi_is_user_func_exists($callback)){
-					
-					$plugin_filename = (string) call_user_func($callback);
-					
-					if (wpi_is_plugin_active($plugin_filename))
-					{
-						$init_callback = 'wpi_'.$plugin['id'].'_init';
-							
-						if (wpi_is_user_func_exists($init_callback)){
-							call_user_func($init_callback);
-						}	
-					}
-				}
-				
-			}
-		}
-		
-	} else {
-		return false;
-	}
-}
 
 /**
  * Header alternate link tag
@@ -398,11 +369,11 @@ function wpi_global_translator_metalinks()
 		$attribs['rel'] 	= 'alternate';
 		$attribs['type'] 	= get_bloginfo('html_type');
 		$attribs['charset'] = strtolower(get_bloginfo('charset'));		
-		$attribs['href'] 	= rel(WPI_URL_SLASHIT.$iso.'/');		
+		$attribs['href'] 	= rel(WPI_HOME_URL_SLASHIT.$iso.'/');		
 		$attribs['hreflang'] = $iso;
 		$attribs['lang'] = $iso;
 		$attribs['xml:lang'] = $iso;		
-		$attribs['title'] = WPI_BLOG_NAME.'&apos;s in '.$language;		
+		$attribs['title'] = WPI_BLOG_NAME.' in '.$language;		
 		$output .= PHP_T._t('link','',$attribs);
 	}
 	
@@ -410,4 +381,70 @@ function wpi_global_translator_metalinks()
 	echo $output;		
 }
 
+/**
+ * WPI random banner
+ */
+function wpi_has_banner(){
+	
+	$images = false;
+	$path = WPI_IMG_DIR.'banner'.DIRSEP;
+	
+	if ( ($images = wpi_get_dir($path,wpiTheme::BANNER_IMAGE_TYPE)) != false){	
+		$rand = $images[rand_array($images)];
+		$uri = wpi_img_url('banner/'.$rand);
+		$images = array('banner'=>$images,'uri'=>$uri);
+	} 
+	
+	return $images;	
+} 
+
+/**
+ * void wpi_the_views()
+ * wp-postview wrapper
+ * @link http://lesterchan.net/wordpress/readme/wp-postviews.html
+ */
+function wpi_the_views(){
+	
+	$view = get_option('views_options');
+	$view = str_replace('%VIEW_COUNT%','0',$view['template']);
+	
+	if ( ($count = the_views(false)) == $view) {
+		return false;
+	} else {
+		t('li',_t('span',$count. ' &middot; '),array('class'=>'wp-postview'));
+	}
+}
+
+function wpi_show_subscription($id='0') {
+	global $sg_subscribe;
+	sg_subscribe_start();
+	
+	$classname = 'subscribe-to-comments';
+	$htm = PHP_EOL;
+	
+	if ( $sg_subscribe->checkbox_shown ) return $id;
+	if ( !$email = $sg_subscribe->current_viewer_subscription_status() ) :
+		$checked_status = ( !empty($_COOKIE['subscribe_checkbox_'.COOKIEHASH]) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
+		
+		$label = _t('label',$sg_subscribe->not_subscribed_text,array('for'=>'subscribe'));
+		$attribs = array('type'=>'checkbox','name'=>'subscribe','id'=>'subscribe','value'=>'subscribe');
+		if ($checked_status) $attribs['checked'] = 'checked';
+		$htm .= _t('li',_t('input','',$attribs).$label,array('class'=>$classname));		
+	
+	elseif ( $email == 'admin' && current_user_can('manage_options') ) : 
+		$htm .= _t('p',str_replace('[manager_link]', 
+					$sg_subscribe->manage_link($email, true, false), $sg_subscribe->author_text), 
+					array('class'=>$classname));
+	else : 
+		$htm .= _t('p',str_replace('[manager_link]', 
+					$sg_subscribe->manage_link($email, true, false), $sg_subscribe->subscribed_text), 
+					array('class'=>$classname));	
+	endif;
+
+	echo $htm;
+	unset($htm);
+	
+	$sg_subscribe->checkbox_shown = true;
+	return $id;
+}
 ?>

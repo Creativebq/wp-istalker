@@ -27,7 +27,10 @@ class wpiStyle
 		$this->setCSS();		
 		$this->theme_url = WPI_THEME_URL;
 		
-		if (defined(WPI_REBUILD_FLAG)){
+		// n2h global translator stylesheet 
+		if (wpi_is_plugin_active('global-translator/global-translator.php') 
+		&& !file_exists(WPI_CSS_DIR.'translator.css') 
+		&& wpi_option('widget_gtranslator')){
 			self::buildFlagFile();
 		}
 	}
@@ -155,18 +158,18 @@ class wpiStyle
 					'rel'=>'stylesheet',
 					'href'=> wpi_get_stylesheets_url($this->css),
 					'media'=>'screen',
-					'title'=> wpiTheme::UID));
-		
+					'title'=> wpiTheme::UID));		
 	}
 	
 	public function internalStyles()
-	{ ?>
-	<style id="wpi-css" type="text/css" title="<?php echo wpiTheme::UID; ?>" media="screen,projectile">
+	{ global $wp_query;			
+	?>
+	<style id="wpi-css-embed" type="text/css" title="<?php echo wpiTheme::UID; ?>">
 	/*<![CDATA[*/<?php if ( ! self::getOption('css_via_header') ): ?>
 	
 	@import url('<?php echo wpi_get_stylesheets_url($this->css);?>');
 		<?php endif; ?>	<?php do_action( wpiFilter::ACTION_INTERNAL_CSS); ?>
-	
+		<?php do_action( wpiFilter::ACTION_GRAVATAR_CSS ); ?>		
 	/*]]>*/
 	</style>	
 	<?php		
@@ -181,9 +184,10 @@ class wpiStyle
 	
 	public static function buildFlagFile()
 	{
-		$flags = wpi_get_dir(WPI_IMG_DIR.'flags'.DIRSEP);
+		$plugin = 'global-translator';
+		$flags = wpi_get_dir(WP_PLUGIN_DIR.DIRSEP.$plugin.DIRSEP,'/\.png/');
 		
-		$template = '#%selector%{background-image:url(\'images/flags/%tag%\')}'.PHP_EOL;
+		$template = '#%selector%{background-image:url('.WP_PLUGIN_URL.'/'.$plugin.'/%tag%)}'.PHP_EOL;
 		
 		$contents = "#translate{padding-top:6px}#translate small{margin-left:-4px;padding-right:3px}#translate a{background-repeat:no-repeat;display:block;float:left;height:11px;margin-right:3px;overflow:hidden;padding:0 !important;position:relative;text-indent:-999em;width:16px}".PHP_EOL;		
 		foreach($flags as $tag){			
@@ -191,7 +195,7 @@ class wpiStyle
 			$contents .= strtr($template,array('%selector%'=>$selector,'%tag%'=>$tag));
 		}
 		
-		wpi_fwrite(WPI_CSS_DIR.'translator-image.css',$contents);
-	}	
+		wpi_fwrite(WPI_CSS_DIR.'translator.css',$contents);
+	}
 } 
 ?>

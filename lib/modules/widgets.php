@@ -83,15 +83,18 @@ function wpi_widget_start($title='random widget',$name= false)
 	$tpl = $Wpi->Sidebar->tpl['widget'];
 	
 	printf($tpl['before_widget'],$name,'widget_'.$name);
-	echo "\n".$tpl['before_title'].$title.$tpl['after_title']."\n";
+	echo PHP_EOL.$tpl['before_title'].$title.$tpl['after_title'].PHP_EOL;
 }
 
 function wpi_widget_end()
 {	global $Wpi;	
-	echo $Wpi->Sidebar->tpl['widget']['after_widget']."\n";
+	echo $Wpi->Sidebar->tpl['widget']['after_widget'].PHP_EOL;
 }
+
 /**
+ * void wpi_widget_post_summary()
  * Post summary, active at single & page
+ * @uses $post  - WP_query post object
  */
 function wpi_widget_post_summary()
 {	global $post, $commentdata;
@@ -99,28 +102,32 @@ function wpi_widget_post_summary()
 	$section = is_at();
 	$name 	= 'about-articles';
 	$title	= ($section == 'single') ? 'About this articles': 'About';
+	$title 	= apply_filters('widget_title',$title);
 	
 	wpi_widget_start($title,$name);		
-	$title	= apply_filters( 'the_title', $post->post_title );
-	$link	= _t('a',WPI_BLOG_NAME,array(
-			'href'	=>	apply_filters(wpiFilter::FILTER_LINKS,WPI_URL_SLASHIT),
-			'title'	=>	WPI_BLOG_NAME,
-			'rel'	=> 'home'));
-									
-	$hdate 	= apply_filters('postdate',$post->post_date);								
-	$date	= _t('span',get_the_time(__('l M jS, Y',WPI_META)),array('class'=>'published-date','title'=>$hdate));
-	
-	$output = sprintf(
-	__('<big>Y</big>ou&rsquo;re currently reading &ldquo;
-	<strong class="fw-">%1s</strong>&rdquo;. 
-	This entry appeared in %2s on %3s.',WPI_META), $title, $link, $date);
-	
-	t('p',$output,array('class'=>'meta-title'));
-?>
-		<p class="meta-published-date">
-		It was last updated at <span class="date"><?php the_modified_time('H:i a');?></span> on <span class="date"><?php the_modified_time('M jS o');?></span> approximately <sup>&cong;</sup> <span class="last-updated hdate"><?php echo wpi_get_relative_date($post->post_modified);?></span>.</p>
-<?php	
-	do_action('widget_single_summary_after');
+		$title	= apply_filters( 'the_title', $post->post_title );
+		$link	= _t('a',WPI_BLOG_NAME,array(
+				'href'	=>	apply_filters(wpiFilter::FILTER_LINKS,WPI_HOME_URL_SLASHIT),
+				'title'	=>	WPI_BLOG_NAME,
+				'rel'	=> 'home'));
+										
+		$hdate 	= apply_filters('postdate',$post->post_date);								
+		$date	= _t('span',get_the_time(__('l M jS, Y',WPI_META)),array('class'=>'published-date','title'=>$hdate));
+		
+		$output = sprintf(__('<big>Y</big>ou&rsquo;re currently reading &ldquo; <strong class="fw-">%1s</strong>&rdquo;. 
+		This entry appeared in %2s on %3s.',WPI_META), $title, $link, $date);
+		
+		t('p',$output,array('class'=>'meta-title'));
+		
+		$output = sprintf(__('It was last updated at %1s on %2s approximately %3s %4s.',WPI_META),		
+				_t('span', get_the_modified_time(__('H:i a',WPI_META)),array('class'=>'date')),
+				_t('span', get_the_modified_time(__('M jS o',WPI_META)),array('class'=>'date')),
+				_t('sup','&#8773;'), // 'approximately equal to' symbol;
+				_t('span',wpi_get_relative_date($post->post_modified),array('class'=>'last-updated hdate')) );
+				
+		t('p',$output,array('class'=>'meta-published-date'));
+		
+		do_action('widget_single_summary_after');
 	wpi_widget_end();	
 }
 
@@ -130,7 +137,8 @@ function wpi_widget_post_summary()
 function wpi_widget_single_nav()
 { 
 	$name 	= 'entry-navigation';
-	$title	= 'Keep looking';
+	$title	= __('Keep looking',WPI_META);
+	$title 	= apply_filters('widget_title',$title);
 	
 	wpi_widget_start($title,$name);
 	rewind_posts();
@@ -152,8 +160,8 @@ function wpi_widget_related_post()
 	$title  = wpi_option('related_post_widget_title');
 	
 	$name 	= 'related-article';
-	$title	= ( ($title) ? $title : 'Related articles' );
-	
+	$title	= ( ($title) ? $title : __('Related articles',WPI_META)  );
+	$title 	= apply_filters('widget_title',$title);
 	if ( ($rel_post = wpi_get_related_post_tag()) != false)
 	{
 		wpi_widget_start($title,$name);
@@ -190,8 +198,9 @@ function wpi_widget_subpages()
 	if ($children)
 	{
 		$name 	= 'subpages';
-		$title  = __('Similar page(s)',WPI_META);
-				
+		$title  = __ngettext('page','pages',count(explode('</li>',$children)),WPI_META);		
+		$title 	= apply_filters('widget_title',__('Similar ',WPI_META).$title);	
+			
 		wpi_widget_start($title,$name);
 		t('ul',$children,array( 'class'=>'xoxo r cf') );
 		wpi_widget_end();
@@ -321,7 +330,8 @@ function wpi_category_treeview_widget($args, $widget_args = 1)
 function wpi_widget_author_stalker_pass()
 { global $authordata;
 	$name 	= 'stalker-pass';
-	$title	= $authordata->display_name.'&apos;s press badge';
+	$title  = sprintf(__('%s&apos;s press badge',WPI_META),$authordata->display_name);
+	$title  = apply_filters('widget_title',$title);
 	
 	if (is_object($authordata)){
 		$user_name = $authordata->display_name;
@@ -331,7 +341,9 @@ function wpi_widget_author_stalker_pass()
 		$user_desc = (!empty($user_desc)) ? $user_desc : 'unknown stalkers';
 		
 		$avatar_uri = wpiGravatar::getURL(md5($authordata->user_email),92,'G');
-		$avatar_uri = apply_filters(wpiFilter::FILTER_LINKS,$avatar_uri.'.ava');
+		if (wpi_option('cache_avatar')){
+			$avatar_uri = apply_filters(wpiFilter::FILTER_LINKS,$avatar_uri.'.ava');
+		}
 		
 		// jobs
 		
@@ -383,8 +395,9 @@ function wpi_most_download_widget(){
 	if (get_option('download_page_url') != self_uri()) return;	
 
 	$limit  = 5;
+	$title  = apply_filters('widget_title',__('Most downloads',WPI_META));
 	
-	wpi_widget_start('Most downloads','most-downloads');
+	wpi_widget_start($title,'most-downloads');
 		$htm = get_most_downloaded($limit,0,false);
 		t('ul',$htm,array('class'=>'select-odd'));	
 	wpi_widget_end();
@@ -398,10 +411,11 @@ function wpi_widget_author_summary()
 	}
 	
 	$name 	= 'author-data';
-	$title	= 'Author details';
+	$title	= apply_filters('widget_title',__('Author details',WPI_META) );
+	
 	wpi_widget_start($title,$name);
 	$name = convert_chars($authordata->display_name);
-	$url = ($authordata->user_url != 'http://') ? $authordata->user_url : BLOGURL;
+	$url = ($authordata->user_url != 'http://') ? $authordata->user_url : WPI_HOME_URL_SLASHIT;
 	
 	$im = array();	
 	
@@ -449,6 +463,113 @@ function wpi_widget_author_summary()
 	wpi_widget_end();
 }
 
+
+function wpi_tags_widget()
+{
+	$options = get_option('widget_tag_cloud');
+	
+	$title = empty($options['title']) ? __('Tags',WPI_META) : apply_filters('widget_title', $options['title']);
+	
+	wpi_widget_start($title,'tag_cloud');
+	wp_tag_cloud();
+	wpi_widget_end();
+}
+
+function wpi_dynacloud_widget()
+{	
+	$title =apply_filters('widget_title', 'Most used terms');
+	
+	wpi_widget_start($title,'widget_dyna_cloud');
+	t('div','',array('id'=>'dynacloud'));
+	wpi_widget_end();
+}
+
+function wpi_trackback_pingback_widget()
+{	global $wp_query;
+	
+	// has comments?
+	if (!$wp_query->comments) return; 
+	
+	// has ping, pingback or trackback;
+	$has_ping = intval(wpi_has_trackback_pingback($wp_query->post->ID));
+	if ( $has_ping <= 0  ) return;
+
+	$title =apply_filters('widget_title', 'Trackback &amp; Pingback');
+	$len   = 69; 
+	$count = 0;
+	$htm = PHP_EOL;
+	
+	wpi_widget_start($title,'widget_tping');	
+
+	foreach($wp_query->comments as $comment){
+			$GLOBALS['comment'] = $comment;
+		if ( ($type = get_comment_type()) != 'comment'){
+			
+			$title = get_comment_author();			
+			$uri = get_comment_author_url();
+			$host = get_host($uri);
+			
+			if ($type == 'pingback'){
+				$count = wpi_count_pingback_by($comment);
+			} else {
+				$count = wpi_count_trackback_by($comment);
+			}
+			
+			
+			$by = _t('cite', sprintf(__('%1$s %2$s from %3$s',WPI_META),$count ,$type ,$host));
+			$link = _t('a',string_len($title,$len),array('href'=>wpi_get_curie_url($uri),
+			'title'=> sprintf(__('%1$s from %2$s | %3$s',WPI_META),ucfirst($type),$host,$title),'class'=> 'ttip'));
+						
+			$htm .= _t('li',$link.$by);
+		}
+	}
+	t('ol',$htm);
+	
+	wpi_widget_end();
+	
+}
+
+function wpi_pages_widget()
+{
+	// inherit settings from default pages options widgets	
+	$options = get_option( 'widget_pages' );
+	$title = empty( $options['title'] ) ? __( 'Pages',WPI_META ) : apply_filters('widget_title', $options['title']);
+	$sortby = empty( $options['sortby'] ) ? 'menu_order' : $options['sortby'];
+	$exclude = empty( $options['exclude'] ) ? '' : $options['exclude'];	
+
+	if ( $sortby == 'menu_order' ) {
+		$sortby = 'menu_order, post_title';
+	}
+
+	$output = wp_list_pages( array('title_li' => '', 'echo' => 0, 'sort_column' => $sortby, 'exclude' => $exclude) );
+	// return false  if there is no pages
+	if ( empty( $output ) ) return false;
+	
+	// Conflict maybe?
+	$elmID = apply_filters(wpiFilter::FILTER_ELM_ID.'wpi_pages_widget','pages');
+	
+	wpi_widget_start($title,$elmID);
+	t('ul',$output,array('class'=>'xoxo'));
+	wpi_widget_end();
+}
+
+function wpi_technorati_backlink()
+{	global $post, $commentdata;
+
+	$class = 'cf';
+	
+	if (wpi_is_plugin_active('global-translator/translator.php')
+	&& wpi_option('widget_gtranslator')){
+		$class .=' hr-line';
+	}
+	
+	echo '<div id="technorati_til" class="'.$class.'">'.PHP_EOL;
+	t('script','',array('src'=>'http://embed.technorati.com/linkcount', 'type'=> 'text/javascript', 'charset'=>'utf-8'));
+	$title = __('View blog reactions',WPI_META);	
+	t('a',$title,array('href'=>'http://technorati.com/search/'.get_permalink($posts->ID ),'title'=> $title,'class'=>'tr-linkcount'));
+	echo '</div>';	
+}
+
 function wpi_register_widgets()
 { global $wp_query;
 	if (wpi_option('widget_treeview')){
@@ -465,7 +586,8 @@ function wpi_register_widgets()
 		wpi_foreach_hook(array(
 			'wpi_before_sidebar_4',
 			'wpi_sidebar_4_nowidget',
-			'wpi_before_sidebar_7'),'wpi_widget_post_summary');
+			'wpi_before_sidebar_7',
+			'wpi_sidebar_7_nowidget'),'wpi_widget_post_summary');
 			
 		if (wpi_option('widget_related_post')){
 			wpi_foreach_hook(array(
@@ -490,6 +612,27 @@ function wpi_register_widgets()
 	add_action('wpi_after_sidebar_7','wpi_widget_subpages');	
 	add_action('wpi_before_sidebar_7','wpi_most_download_widget',11);
 	
+	
+	// main sidebar 1 (active when there is no widgets)
+		
+		foreach(array('tags','pages') as $name){
+			$priority = ($name == 'tags') ? 10 : wpiTheme::LAST_PRIORITY;
+			wpi_foreach_hook(array(
+					'wpi_sidebar_1_nowidget',
+					'wpi_sidebar_7_nowidget'),'wpi_'.$name.'_widget',$priority);	
+		}
+	// comments
+	wpi_foreach_hook(array('wpi_before_sidebar_17','wpi_sidebar_17_nowidget'),'wpi_trackback_pingback_widget');
+	wpi_foreach_hook(array('wpi_before_sidebar_17','wpi_sidebar_17_nowidget'),'wpi_tags_widget');
+	
+	if (wpi_option('widget_dynacloud')){
+		wpi_foreach_hook(array('wpi_before_sidebar_17','wpi_sidebar_17_nowidget'),'wpi_dynacloud_widget');
+	}
+	
+	if (wpi_option('widget_technorati_backlink')){
+		add_action('widget_single_summary_after','wpi_technorati_backlink');	
+	}
+	
 }
 
 function wpi_overwrite_widget_cat(){
@@ -510,7 +653,6 @@ function wpi_overwrite_widget_cat(){
 function sidebar_has_widgets($id){
 	return wpiSidebar::hasWidget($id);
 }
-
 
 function sidebar_has_widgets_array(array $sidebar_id){
 	

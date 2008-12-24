@@ -16,7 +16,7 @@ global $authordata;
 	$name = $display_name = ent2ncr(htmlentities2($name));
 	
 	$author_url = $authordata->user_url;
-	$author_url = ( $author_url != 'http://') ? $author_url : WPI_URL;	
+	$author_url = ( $author_url != 'http://') ? $author_url : WPI_HOME_URL;	
 	
 	switch ($type):
 	
@@ -27,7 +27,7 @@ global $authordata;
 		$attribs = array( 
 			'href' => $author_url,
 			'class' => 'url fn dc-creator',
-			'rel' => 'colleague foaf.homepage foaf.maker',
+			'rel' => 'me foaf.homepage foaf.maker',
 			'title' => 'Visit '.$display_name.'&apos;s Website',
 			'rev' => 'author:'.$authordata->user_nicename );
 		
@@ -126,15 +126,18 @@ function wpi_get_current_author(){
 	return $user;
 }
 
-function wpi_get_blog_since_year(){
+function wpi_get_blog_since_year($year = false){
 	
 	$cur = date('Y',SV_CURRENT_TIMESTAMP);
-	$since = wpi_blog_since_year();
+	if (!$year){
+		$since = wpi_blog_since_year();
+	} else {
+		$since = absint($year);
+	}
+	
 	$date = $since.' - '.$cur;
 	
-	if ($cur == $since){
-		$date = $cur;
-	} 
+	if ($cur == $since)	$date = $cur; 
 	
 	return _t('span',$date,array('class'=>'since-year') );
 }
