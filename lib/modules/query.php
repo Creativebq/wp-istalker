@@ -1,15 +1,29 @@
 <?php
 if ( !defined('KAIZEKU') ) { die( 42); }
-	
-function wpi_get_theme_option($name){
-	
-    $options = get_option(WPI_META_PREFIX.'settings');
+/**
+ * $Id$
+ * WPI Query functions
+ */
+ 	
+function wpi_get_theme_option($name, $extra = false){
+
+    $metakey = WPI_META_PREFIX.'settings';
+    if ($extra){
+    	$metakey = WPI_META_PREFIX.'extra';
+    }
+		
+    $options = get_option($metakey);
 
     if (isset($options[$name])) {
+    	
+    	if ($extra){
+    		$options[$name] = call_user_func_array(wpiTheme::DECODE_CONFIG_ENGINE, array($options[$name]) );
+    	}
+		    	
         return $options[$name];
     } else {
-        wpi_update_theme_options($name);
-        return wpi_get_theme_option($name);
+        wpi_update_theme_options($name,'',$extra);
+        return wpi_get_theme_option($name,$extra);
     }
 }
 
@@ -19,20 +33,28 @@ function wpi_blog_since_year(){
 }
 
 
-function wpi_theme_option($name){
-    echo wpi_get_theme_option($name);
+function wpi_theme_option($name,$extra=false){
+    echo wpi_get_theme_option($name,$extra);
 }
 
-function wpi_option($name){
-	return wpi_get_theme_option($name);
+function wpi_option($name,$extra=false){
+	return wpi_get_theme_option($name,$extra);
 }
 
 
-function wpi_update_theme_options($name, $value = ''){
+function wpi_update_theme_options($name, $value = '',$extra = false){
 	
     $metakey = WPI_META_PREFIX.'settings';
+    if ($extra){
+    	$metakey = WPI_META_PREFIX.'extra';
+    }
+    
     $options = $noptions = get_option($metakey);
     $noptions[$name] = $value;
+    
+    if ($extra){
+    	$noptions[$name] = call_user_func_array(wpiTheme::ENCODE_CONFIG_ENGINE, array($value) );
+    }
 
     if ($options != $noptions) {
         $options = $noptions;
@@ -41,18 +63,24 @@ function wpi_update_theme_options($name, $value = ''){
 }
 
 function wpi_update_form_meta($pid,$tag){
+	
 	delete_post_meta( $pid, $tag );
+	$meta = 'wpi_'.$tag;
+	
 	if ($tag == 'header_content' || $tag == 'footer_content'){
-		$_POST['wpi_'.$tag] = stripslashes_deep($_POST['wpi_'.$tag]);
+		$_POST[$meta] = stripslashes_deep($_POST[$meta]);
 	}
-	add_post_meta( $pid, $tag, $_POST['wpi_'.$tag] );	
+	
+	add_post_meta( $pid, $tag, $_POST[$meta] );	
 }
 
 
 function wpi_get_postmeta($key){ 
-	global $post;
+	global $wp_query, $post;
 
-	if ( ($meta = wpi_get_post_meta($post->ID,$key)) != false){
+	$pid = (!is_admin()) ? $wp_query->post->ID : $post->ID;
+	
+	if ( ($meta = get_post_meta($pid,$key)) != false){
 		if (!isset($meta[0])){
 			return false;
 		}
@@ -263,6 +291,13 @@ function wpi_count_trackback_by($comment)
 	return $wpdb->get_var($wpdb->prepare($query,1, 'trackback',$url));	
 }
 
+function wpi_has_trackback_pingback($post_id){
+	global $wpdb;
+	
+	$query = "SELECT COUNT(*) FROM $wpdb->comments WHERE comment_approved = %d AND comment_post_ID = %s AND comment_type != ''";
+	return $wpdb->get_var($wpdb->prepare($query,1,$post_id));
+}
+
 function wpi_update_post_form($id = false){
 
 	if ( is_post('wpi_maintitle') ) {
@@ -293,6 +328,10 @@ function wpi_update_post_form($id = false){
 		wpi_update_form_meta($id,'banner_repeat');
 	}
 
+	if ( is_post('wpi_banner_position') ) {
+		wpi_update_form_meta($id,'banner_position');
+	}
+	
 	if ( is_post('wpi_banner_height') ) {
 		wpi_update_form_meta($id,'banner_height');
 	}
@@ -315,6 +354,10 @@ function wpi_update_post_form($id = false){
 	
 	if ( is_post('wpi_footer_content') ){
 		wpi_update_form_meta($id,'footer_content');
+	}
+	
+	if (is_post('wpi_post_thumb_url')){
+		wpi_update_form_meta($id,'post_thumb_url');
 	}		
 }
 
@@ -336,7 +379,7 @@ function wpi_profile_options_update($id = false)
 {
 	$id = intval($_POST['user_id']);	
 	$key = array('profession','job_title','birthdate','show_banner',
-				 'banner_url','banner_repeat','banner_height');
+				 'banner_url','banner_repeat','banner_height','banner_position');
 				 	
 	foreach($key as $index){
 		wpi_update_usermeta($id,'user_'.$index);

@@ -2,19 +2,16 @@
 if (!defined('KAIZEKU')) { die(42); }
 require WPI_LIB_CLASS.'section-enum.php';
 /**
- * Wp-Istalker config
- * 
- *   
- * @author	Avice Devereux, http://kaizeku.com 
- * @since	17.march.2008
- * @license	MIT License  
+ * $Id$
+ * Wp-Istalker default configuration
+ * @since 1.2
  */
 
 final class wpiTheme
 {
 	const UID = 'wp-istalker-chrome';
 	
-	const VERSION = '1.6.2';
+	const VERSION = '1.6.2 RC 3';
 	
 	const AUTHOR = 'ChaosKaizer';
 	
@@ -22,7 +19,7 @@ final class wpiTheme
 	
 	const THEME_RELEASE_TYPE = 'Public Edition';
 	
-	const SIDEBAR_COUNT = 16;
+	const SIDEBAR_COUNT = 17;
 	
 	const LIB_TYPE_CONFIG = 'lib';
 	
@@ -36,6 +33,8 @@ final class wpiTheme
 	
 	const LIB_TYPE_IMPORT = 'import';
 	
+	const LIB_TYPE_SHORTCODE = 'shortcode';
+	
 	const REGISTER_ACTIONS = 'wpi_register_actions';
 	
 	const REGISTER_SIDEBAR = 'register_sidebar';
@@ -45,6 +44,8 @@ final class wpiTheme
 	const DEFAULT_FILE_EXTENSION = '.php';
 	
 	const BLOG_TITLE_SEPARATOR = '&#187;';
+	
+	const PARAMS_SEP = ',';
 	
 	const WP_CONSTANT_REGEX = '/WP/';
 	
@@ -85,7 +86,7 @@ final class wpiTheme
 	const PUB_QUERY_VAR_CSS = 'wpi-styles';
 	
 	const PUB_QUERY_VAR_JS = 'wpi-scripts';
-	
+		
 	const CTYPE_XML = 'Content-Type: application/xml';
 	
 	const CTYPE_CSS = 'Content-Type: text/css';
@@ -95,6 +96,10 @@ final class wpiTheme
 	const CL_COOKIE_TIME = 'wpi-cl';
 	
 	const LAST_PRIORITY = 11;
+	
+	const GD_FONT_TYPE = "(\.(TTF|ttf|OTF|otf|FON|fon))";
+	
+	const BANNER_IMAGE_TYPE = "(\.(jpg|JPG|jpeg|JPEG|jpe|JPE|png|PNG|gif|GIF))";
 	
 	private function __construct(){}		
 }
