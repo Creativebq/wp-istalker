@@ -45,6 +45,14 @@ Take notes: this documentation is a work in progress, WPI fancy class is availab
 || select-odd ||  ||
 || on-click-select ||  input elements only ||
 
+==== Client Time Body Class Selector ====
+This features is available inside the `Theme options › Advanced Preferences › Client Side features › Client Time`.
+|| *Class Selector* || *Description*  ||
+|| dy || *Day* from `09:00 > 16:59` || 
+|| dk || *Dusk* from `17:00 > 19:59` || 
+|| nt|| *Night* from `20:00 > 04:59` || 
+|| dw|| *Dawn* from `05:00 > 08:59` || 
+
 ==Reference==
 
   # http://www.stopdesign.com/articles/replace_text/
